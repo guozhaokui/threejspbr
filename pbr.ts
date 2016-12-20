@@ -8,12 +8,6 @@ var renderer = new THREE.WebGLRenderer();
 renderer.setSize( window.innerWidth, window.innerHeight );
 document.body.appendChild( renderer.domElement );
 
-//scene obj
-var geometry = new THREE.BoxGeometry( 1, 1, 1 );
-var material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
-var cube = new THREE.Mesh( geometry, material );
-scene.add( cube );
-
 camera.position.z = 5;
 
 
@@ -32,16 +26,45 @@ var tex1 = loader.load('./imgs/test1.png',(tex)=>{
 tex1.wrapS=tex1.wrapT=THREE.RepeatWrapping;
 tex1.anisotropy=16;
 
-var mtl1 = new THREE.MeshPhongMaterial({map:tex1,specular:0xffffff,side:THREE.DoubleSide,alphaTest:0.5});
-var geo2 = new THREE.ParametricGeometry(clothFunction,cloth.w,cloth.h);
+//var geo2 = new THREE.ParametricGeometry(clothFunction,cloth.w,cloth.h);
 //geo2.dynamic = true;
 
-var uniforms={texture:{value:tex1}};
+var shadermtlparam :THREE.ShaderMaterialParameters={};
+shadermtlparam.vertexShader=`
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+`;
+shadermtlparam.fragmentShader=`
+      varying vec2 vUv;
+      uniform sampler2D tex1;
+      void main() {
+        gl_FragColor.rgb = texture2D(tex1,vUv).rgb;
+        gl_FragColor.a = 1.0;
+      }
+`;
+shadermtlparam.uniforms={
+    tex1:{value:tex1}
+};
+var mtl2 = new THREE.ShaderMaterial(shadermtlparam);
+
+//scene obj
+var geometry = new THREE.SphereGeometry(1,20,20);
+//var material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
+var sphere = new THREE.Mesh( geometry, mtl2 );
+scene.add( sphere );
+
+var shaderloader = new THREE.XHRLoader();
+shaderloader.load('./vsdepth.glsl',)
+
+var objloader = new THREE.ObjectLoader();
 
 //anim
 function  update(){
-    cube.rotation.x +=0.1;
-    cube.rotation.y +=0.1;
+    //cube.rotation.x +=0.1;
+    sphere.rotation.y +=0.01;
 }
 
 //render

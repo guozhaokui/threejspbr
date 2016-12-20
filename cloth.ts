@@ -40,7 +40,7 @@ var windForce=new THREE.Vector3(0,0,0);
 
 var tmpForce = new THREE.Vector3();
 var lastTime=0;
-
+var clothGeometry:THREE.Geometry=null;
 function plane(width:number, height:number){
     return function(u:number, v:number){
         var x =(u-0.5)*width;
@@ -199,18 +199,21 @@ function simulate( time:number ) {
     var pt, constraints, constraint;
 	// 风力的影响
 	if ( wind ) {
-		var face, faces = clothGeometry.faces, normal;
-		particles = cloth.particles;
+        if(!clothGeometry){
+            alert('需要先设置clothGeometry');
+            var face, faces = clothGeometry.faces, normal;
+            particles = cloth.particles;
 
-		for ( i = 0, il = faces.length; i < il; i ++ ) {
-			face = faces[ i ];
-			normal = face.normal;
+            for ( i = 0, il = faces.length; i < il; i ++ ) {
+                face = faces[ i ];
+                normal = face.normal;
 
-			tmpForce.copy( normal ).normalize().multiplyScalar( normal.dot( windForce ) );
-			particles[ face.a ].addForce( tmpForce );
-			particles[ face.b ].addForce( tmpForce );
-			particles[ face.c ].addForce( tmpForce );
-		}
+                tmpForce.copy( normal ).normalize().multiplyScalar( normal.dot( windForce ) );
+                particles[ face.a ].addForce( tmpForce );
+                particles[ face.b ].addForce( tmpForce );
+                particles[ face.c ].addForce( tmpForce );
+            }
+        }
 	}
 
     cloth.particles.forEach(p=>{
