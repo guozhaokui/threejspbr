@@ -1,6 +1,5 @@
 /// <reference path="typings/index.d.ts" />
 
-
 var scene = new THREE.Scene();
 var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
 
@@ -29,42 +28,44 @@ tex1.anisotropy=16;
 //var geo2 = new THREE.ParametricGeometry(clothFunction,cloth.w,cloth.h);
 //geo2.dynamic = true;
 
-var shadermtlparam :THREE.ShaderMaterialParameters={};
-shadermtlparam.vertexShader=`
-      varying vec2 vUv;
-      void main() {
-        vUv = uv;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-`;
-shadermtlparam.fragmentShader=`
-      varying vec2 vUv;
-      uniform sampler2D tex1;
-      void main() {
-        gl_FragColor.rgb = texture2D(tex1,vUv).rgb;
-        gl_FragColor.a = 1.0;
-      }
-`;
-shadermtlparam.uniforms={
-    tex1:{value:tex1}
-};
-var mtl2 = new THREE.ShaderMaterial(shadermtlparam);
+THREE.Cache.enabled=true;   //打开文件缓存
+var loadermgr = new THREE.LoadingManager(
+    onloaded,
+    (url,loaded,total)=>{
+        console.log(url+','+loaded+','+total);
+    }
+)
 
-//scene obj
-var geometry = new THREE.SphereGeometry(1,20,20);
-//var material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
-var sphere = new THREE.Mesh( geometry, mtl2 );
-scene.add( sphere );
+var sphere:THREE.Mesh=null;
+var glslloader = new THREE.XHRLoader(loadermgr);
+glslloader.load('./vs1.glsl');
+glslloader.load('./ps1.glsl');
 
-var shaderloader = new THREE.XHRLoader();
-shaderloader.load('./vsdepth.glsl',)
+function setupScene(){
+    var shadermtlparam :THREE.ShaderMaterialParameters={};
+    shadermtlparam.vertexShader= THREE.Cache.get('./vs1.glsl'); //glslloader.load('./vs1.glsl');//不能再调glslloader.load了，会再次触发完成事件
+    shadermtlparam.fragmentShader=THREE.Cache.get('./ps1.glsl');
+    shadermtlparam.uniforms={
+        tex1:{value:tex1}
+    };
+    var mtl2 = new THREE.ShaderMaterial(shadermtlparam);
 
-var objloader = new THREE.ObjectLoader();
+    //scene obj
+    var geometry = new THREE.SphereGeometry(1,20,20);
+    //var material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
+    sphere = new THREE.Mesh( geometry, mtl2 );
+    scene.add( sphere );
+}
+
+function onloaded(){
+    setupScene();
+}
 
 //anim
 function  update(){
     //cube.rotation.x +=0.1;
-    sphere.rotation.y +=0.01;
+    if(sphere)
+        sphere.rotation.y +=0.01;
 }
 
 //render
