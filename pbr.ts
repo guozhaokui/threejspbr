@@ -5,8 +5,6 @@ var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHe
 
 import * as fs from 'fs';
 
-fs.writeFileSync('d:/temp/fuck.txt','fuck');
-
 var renderer = new THREE.WebGLRenderer();
 renderer.setSize( window.innerWidth, window.innerHeight );
 document.body.appendChild( renderer.domElement );
@@ -29,6 +27,9 @@ var tex1 = loader.load('./imgs/test1.png',(tex)=>{
 tex1.wrapS=tex1.wrapT=THREE.RepeatWrapping;
 tex1.anisotropy=16;
 
+var texenv = loader.load('./imgs/env/env2_2k.png',tex=>{});
+var texenvl = loader.load('./imgs/env/env2_Env.png',tex=>{});
+
 //var geo2 = new THREE.ParametricGeometry(clothFunction,cloth.w,cloth.h);
 //geo2.dynamic = true;
 
@@ -50,7 +51,9 @@ function setupScene(){
     shadermtlparam.vertexShader= THREE.Cache.get('./vs1.glsl'); //glslloader.load('./vs1.glsl');//不能再调glslloader.load了，会再次触发完成事件
     shadermtlparam.fragmentShader=THREE.Cache.get('./ps1.glsl');
     shadermtlparam.uniforms={
-        tex1:{value:tex1}
+        tex1:{value:tex1},
+        texEnv:{value:texenv},
+        texEnvl:{value:texenvl}
     };
     var mtl2 = new THREE.ShaderMaterial(shadermtlparam);
 
@@ -68,10 +71,8 @@ function onloaded(){
 //anim
 function  update(){
     //cube.rotation.x +=0.1;
-    /*
     if(sphere)
         sphere.rotation.y +=0.01;
-    */    
 }
 
 //render
@@ -84,3 +85,15 @@ render();
 
 var ll = new THREE.ObjectLoader();
 
+var parsehdr = require('parse-hdr');
+function testReadHDR(){
+    var file = 'F:/work/osgjs/examples/hdr/textures/Walk_Of_Fame/Mans_Outside_2k.hdr';
+    var buff = fs.readFileSync(file);
+    var img = parsehdr(buff);
+    console.log(img.shape);
+    console.log(img.exposure);
+    console.log(img.gamma);
+    console.log(img.data[1]);//w*h*3
+}
+
+//testReadHDR();
