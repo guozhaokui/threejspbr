@@ -28,6 +28,8 @@ tex1.wrapS=tex1.wrapT=THREE.RepeatWrapping;
 tex1.anisotropy=16;
 
 var texenv = loader.load('./imgs/env/env2_2k.png',tex=>{});
+texenv.wrapS=THREE.RepeatWrapping;
+texenv.minFilter = THREE.NearestFilter;
 var texenvl = loader.load('./imgs/env/env2_Env.png',tex=>{});
 
 //var geo2 = new THREE.ParametricGeometry(clothFunction,cloth.w,cloth.h);

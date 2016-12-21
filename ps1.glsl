@@ -31,6 +31,7 @@ void texPanorama(sampler2D tex, const in vec3 dir, out vec4 rgba){
     float u = atan(-dir.z,dir.x)/_2PI+0.5;  //逆时针增加，所以z取负
     float v = asin(dir.y)/PI+0.5;
     rgba = texture2D(tex, vec2(u,v));
+    //rgba = vec4(u,v,0.,0.);
 }
 
 void main() {
