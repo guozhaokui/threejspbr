@@ -11,6 +11,10 @@ document.body.appendChild( renderer.domElement );
 
 camera.position.z = 5;
 
+var controls = new THREE.OrbitControls( camera, renderer.domElement );
+controls.enableDamping = true;
+controls.dampingFactor = 0.25;
+controls.rotateSpeed = 0.35;
 
 var dirlight = new THREE.DirectionalLight(0xffffff,1.0);
 dirlight.position.set(50,200,100);
@@ -27,6 +31,7 @@ var tex1 = loader.load('./imgs/test1.png',(tex)=>{
 tex1.wrapS=tex1.wrapT=THREE.RepeatWrapping;
 tex1.anisotropy=16;
 
+var texenv0 = loader.load('./imgs/env/env2.jpg',tex=>{});
 var texenv = loader.load('./imgs/env/env2_2k.png',tex=>{});
 texenv.wrapS=THREE.RepeatWrapping;
 texenv.minFilter = THREE.NearestFilter;
@@ -60,10 +65,18 @@ function setupScene(){
     var mtl2 = new THREE.ShaderMaterial(shadermtlparam);
 
     //scene obj
-    var geometry = new THREE.SphereGeometry(1,20,20);
+    var geometry = new THREE.SphereGeometry(1,40,40);
     //var material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
     sphere = new THREE.Mesh( geometry, mtl2 );
     scene.add( sphere );
+
+    var mtlsky = new THREE.MeshBasicMaterial({
+        side:THREE.DoubleSide,
+        color:0xffffffff,
+        map:texenv0
+    });
+    var skysphere = new THREE.Mesh( new THREE.SphereGeometry(13,40,40),mtlsky);
+    scene.add(skysphere);
 }
 
 function onloaded(){
@@ -73,8 +86,10 @@ function onloaded(){
 //anim
 function  update(){
     //cube.rotation.x +=0.1;
-    if(sphere)
-        sphere.rotation.y +=0.01;
+    controls.update();
+    if(sphere){
+        //sphere.rotation.y +=0.01;
+    }
 }
 
 //render
