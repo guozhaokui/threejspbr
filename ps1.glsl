@@ -2,8 +2,8 @@
 float PI = 3.14159265358979323846264;
 const float _2PI = 6.2831853071796;
 varying vec2 vUv;
-varying vec3 vNorm;
-varying vec4 vViewPos;
+varying vec3 vWorldNorm;
+varying vec3 vRefDir;
 uniform sampler2D tex1;
 uniform sampler2D texEnv;
 uniform sampler2D texEnvl;
@@ -38,9 +38,9 @@ void main() {
     vec3 col = basecolor;
     //col += BRDF();
     vec4 refcol;
-    texPanorama(texEnv, reflect(normalize(vViewPos.xyz),vNorm),refcol);
+    texPanorama(texEnv, vRefDir,refcol);
     refcol.rgb = _RGBEToRGB(refcol);
-    vec3 col1 = _RGBEToRGB(texture2D(texEnv,vNorm.xy));
+    //vec3 col1 = _RGBEToRGB(texture2D(texEnv,vNorm.xy));
 
     gl_FragColor.rgb = (refcol.xyz);// basecolor;
     gl_FragColor.a = 1.0;
