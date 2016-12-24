@@ -53,14 +53,18 @@ var glslloader = new THREE.XHRLoader(loadermgr);
 glslloader.load('./vs1.glsl');
 glslloader.load('./ps1.glsl');
 
+var shadermtlparam :THREE.ShaderMaterialParameters={};
+var sceok=false;
 function setupScene(){
-    var shadermtlparam :THREE.ShaderMaterialParameters={};
     shadermtlparam.vertexShader= THREE.Cache.get('./vs1.glsl'); //glslloader.load('./vs1.glsl');//不能再调glslloader.load了，会再次触发完成事件
     shadermtlparam.fragmentShader=THREE.Cache.get('./ps1.glsl');
     shadermtlparam.uniforms={
         tex1:{value:tex1},
         texEnv:{value:texenv},
-        texEnvl:{value:texenvl}
+        texEnvl:{value:texenvl},
+        u_fresnel0:{value:1.0},
+        u_roughness:{value:0.5},
+        u_lightDir:{value:{x:0,y:1,z:0}}
     };
     var mtl2 = new THREE.ShaderMaterial(shadermtlparam);
 
@@ -77,6 +81,7 @@ function setupScene(){
     });
     var skysphere = new THREE.Mesh( new THREE.SphereGeometry(13,40,40),mtlsky);
     scene.add(skysphere);
+    sceok=true;
 }
 
 function onloaded(){
@@ -84,9 +89,20 @@ function onloaded(){
 }
 
 //anim
+var f0=.2;
+var roughness=0.5;
+var lightdir=[0,1,0];
 function  update(){
     //cube.rotation.x +=0.1;
     controls.update();
+    if(sceok){
+        shadermtlparam.uniforms.u_fresnel0.value=f0;
+        shadermtlparam.uniforms.u_roughness.value = roughness;
+        var lightdirlen = Math.sqrt( lightdir[0]*lightdir[0]+lightdir[1]*lightdir[1]+lightdir[2]*lightdir[2]);
+        shadermtlparam.uniforms.u_lightDir.x = lightdir[0]/lightdirlen;
+        shadermtlparam.uniforms.u_lightDir.y = lightdir[1]/lightdirlen;
+        shadermtlparam.uniforms.u_lightDir.z = lightdir[2]/lightdirlen;
+    }
     if(sphere){
         //sphere.rotation.y +=0.01;
     }
