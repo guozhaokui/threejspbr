@@ -1,3 +1,4 @@
+//#version 130
 
 float PI = 3.14159265358979323846264;
 const float _2PI = 6.2831853071796;
@@ -58,6 +59,95 @@ float geometry(vec3 n, vec3 h, vec3 v, vec3 l, float roughness){
     return ( NdotL_clamped / (NdotL_clamped * one_minus_k + k) ) * ( NdotV_clamped / (NdotV_clamped * one_minus_k + k) );
 }
 
+/* TODO 不支持 uint和 >> 怎么办  #version 130
+//http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html#wong97
+ float radicalInverse_VdC(uint bits) {
+     bits = (bits << 16u) | (bits >> 16u);
+     bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
+     bits = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
+     bits = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
+     bits = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
+     return float(bits) * 2.3283064365386963e-10; // / 0x100000000
+ }
+*/
+float radicalInverse_VdC(int bits) {
+    //TODO 这个怎么实现。
+    return 0.5;
+}
+ 
+vec2 hammersley2d(int i, int N) {
+    return vec2(float(i)/float(N), radicalInverse_VdC(i));
+}
+
+//投影到半球上
+//均匀分布
+vec3 hemisphereSample_uniform(float u, float v) {
+    float phi = v * 2.0 * PI;
+    float cosTheta = 1.0 - u;
+    float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+    return vec3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
+}
+
+//cos分布
+vec3 hemisphereSample_cos(float u, float v) {
+    float phi = v * 2.0 * PI;
+    float cosTheta = sqrt(1.0 - u);
+    float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+    return vec3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
+}
+
+vec2 Hammersley(int i, int NumSamples){
+    return hammersley2d(i,NumSamples);
+}
+
+//https://de45xmedrsdbp.cloudfront.net/Resources/files/2013SiggraphPresentationsNotes-26915738.pdf
+//Image-Based Lighting
+//P4
+vec3 ImportanceSampleGGX( vec2 Xi, float Roughness, vec3 N ){
+    float a = Roughness * Roughness;
+    float Phi = 2. * PI * Xi.x;
+    float CosTheta = sqrt( (1. - Xi.y) / ( 1. + (a*a - 1.) * Xi.y ) );
+    float SinTheta = sqrt( 1. - CosTheta * CosTheta );
+    vec3 H;
+    H.x = SinTheta * cos( Phi );
+    H.y = SinTheta * sin( Phi );
+    H.z = CosTheta;
+    vec3 UpVector = abs(N.z) < 0.999 ? vec3(0.,0.,1.) : vec3(1.,0.,0.);
+    vec3 TangentX = normalize( cross( UpVector, N ) );
+    vec3 TangentY = cross( N, TangentX );
+    // Tangent to world space
+    return TangentX * H.x + TangentY * H.y + N * H.z;
+}
+
+vec3 SpecularIBL( vec3 SpecularColor , float Roughness, vec3 N, vec3 V ){
+    vec3 SpecularLighting = vec3(0.,0.,0.);
+    const int NumSamples = 1024;
+    for( int i = 0; i < NumSamples; i++ ){
+        vec2 Xi = Hammersley( i, NumSamples );
+        vec3 H = ImportanceSampleGGX( Xi, Roughness, N );
+        vec3 L = 2. * dot( V, H ) * H - V;
+        float NoV = max( dot( N, V ),0.);
+        float NoL = max( dot( N, L ),0. );
+        float NoH = max( dot( N, H ),0. );
+        float VoH = max( dot( V, H ),0. );
+        if( NoL > 0. ){
+            vec4 SampleColor;
+            texPanorama(texEnv, L, SampleColor);
+            //vec3 SampleColor = EnvMap.SampleLevel( EnvMapSampler , L, 0 ).rgb;
+            //float G = G_Smith( Roughness, NoV, NoL );
+            float k= Roughness * sqrt(2.0/3.14159265);
+            float one_minus_k= 1.0 -k;
+            float G = ( NoL / (NoL * one_minus_k + k) ) * ( NoV / (NoV * one_minus_k + k));
+            float Fc = pow( 1.0 - VoH, 5.0 );
+            vec3 F = (1.0 - Fc) * SpecularColor + Fc;
+            // Incident light = SampleColor * NoL
+            // Microfacet specular = D*G*F / (4*NoL*NoV)
+            // pdf = D * NoH / (4 * VoH)
+            SpecularLighting += SampleColor.rgb * F * G * VoH / (NoH * NoV);
+        }
+    }
+    return SpecularLighting / float(NumSamples);
+}
 
 uniform float u_fresnel0;
 uniform float u_roughness;

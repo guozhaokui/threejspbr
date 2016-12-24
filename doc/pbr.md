@@ -12,6 +12,20 @@
 ## albedo 的计算
 暴力采样？
 
+##IBL
+Hammersley 随机采样
+是一种采样模式，也可用于shadowmap或者ssao
+http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html#wong97
+Van der Corput sequence：把数字i，从小数点那里镜像一下，就变成了一个1到0之间的小数。
+用这个序列得到的点(i,vdcs(i)),就是一个x轴一直增加，y是0到1之间差不多随机的一个东西:  
+0，0.5， 0.75... 
+
+![](./imgs/Van_der_Corput_sequence.png)  
+如果取N个，可以i/N
+
+
+##LUT
+
 ##
 diff angle
     如果各向同性，则view的绝对方向并不重要，只要diff就行
