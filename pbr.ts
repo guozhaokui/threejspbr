@@ -7,6 +7,10 @@ import * as fs from 'fs';
 
 var renderer = new THREE.WebGLRenderer();
 renderer.setSize( window.innerWidth, window.innerHeight );
+//TODO 这里用了扩展，手机应该是不支持的
+renderer.context.getExtension('OES_texture_float');
+renderer.context.getExtension( 'OES_texture_float_linear' );
+
 document.body.appendChild( renderer.domElement );
 
 camera.position.z = 5;
@@ -55,18 +59,60 @@ glslloader.load('./ps1.glsl');
 
 var shadermtlparam :THREE.ShaderMaterialParameters={};
 var sceok=false;
+
+
+/**
+ * vdc算法产生的序列。这个比random要均匀一些。
+ */
+var tmpUint = new Uint32Array(1);
+ function radicalInverse_VdC(bits:number):number {
+     //先颠倒前后16位
+     bits = (bits << 16) | (bits >>> 16);
+     //下面颠倒16位中的前后8位
+     bits = ((bits & 0x55555555) << 1) | ((bits & 0xAAAAAAAA) >>> 1);
+     bits = ((bits & 0x33333333) << 2) | ((bits & 0xCCCCCCCC) >>> 2);
+     bits = ((bits & 0x0F0F0F0F) << 4) | ((bits & 0xF0F0F0F0) >>> 4);
+     bits = ((bits & 0x00FF00FF) << 8) | ((bits & 0xFF00FF00) >>> 8);
+     //必须是uint的
+     tmpUint[0]=bits;
+     return tmpUint[0] * 2.3283064365386963e-10; // / 0x100000000
+ }
+
+/**
+ * 
+ */
+function createHammersleyTex(w:number, h:number):Float32Array{
+    var ret = new Float32Array(w*h*4);
+    var ri=0;
+    var ci=0;
+    for(ci=0; ci<w*h; ci++){
+        var v = radicalInverse_VdC(ci);
+        ret[ri++] = v;
+        ret[ri++]=0;
+        ret[ri++]=0;
+        ret[ri++]=1.0;
+    }
+    return ret;
+}
 function setupScene(){
+    var noiseTex1 = new THREE.DataTexture(createHammersleyTex(32,32),32,32,THREE.RGBAFormat,THREE.FloatType,THREE.Texture.DEFAULT_MAPPING,
+    THREE.ClampToEdgeWrapping, THREE.ClampToEdgeWrapping,THREE.NearestFilter,THREE.NearestFilter);
+    noiseTex1.needsUpdate =true;
+
+    
     shadermtlparam.vertexShader= THREE.Cache.get('./vs1.glsl'); //glslloader.load('./vs1.glsl');//不能再调glslloader.load了，会再次触发完成事件
     shadermtlparam.fragmentShader=THREE.Cache.get('./ps1.glsl');
     shadermtlparam.uniforms={
         tex1:{value:tex1},
         texEnv:{value:texenv},
         texEnvl:{value:texenvl},
+        texNoise1:{value:noiseTex1},
         u_fresnel0:{value:1.0},
         u_roughness:{value:0.5},
         u_lightDir:{value:{x:0,y:1,z:0}}
     };
     var mtl2 = new THREE.ShaderMaterial(shadermtlparam);
+    //mtl2.extensions = {a:0};
 
     //scene obj
     var geometry = new THREE.SphereGeometry(1,40,40);

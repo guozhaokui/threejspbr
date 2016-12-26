@@ -9,6 +9,7 @@ varying vec3 vViewDir;
 uniform sampler2D tex1;
 uniform sampler2D texEnv;
 uniform sampler2D texEnvl;
+uniform sampler2D texNoise1;
 const vec3 basecolor=vec3(0.,0.5,0.);
 uniform vec3 u_lightDir;
 //const vec3 lpos=vec3()
@@ -72,6 +73,8 @@ float geometry(vec3 n, vec3 h, vec3 v, vec3 l, float roughness){
 */
 float radicalInverse_VdC(int bits) {
     //TODO 这个怎么实现。
+    //const float a0
+    const int a=1;
     return 0.5;
 }
  
@@ -122,8 +125,18 @@ vec3 ImportanceSampleGGX( vec2 Xi, float Roughness, vec3 N ){
 vec3 SpecularIBL( vec3 SpecularColor , float Roughness, vec3 N, vec3 V ){
     vec3 SpecularLighting = vec3(0.,0.,0.);
     const int NumSamples = 1024;
+    float dx = 1.0/1024.0;
+    float cx = 0.;
+    float cy = 0.;
+    float tx = 0.;
+    float ty = 0.;
     for( int i = 0; i < NumSamples; i++ ){
-        vec2 Xi = Hammersley( i, NumSamples );
+        float fi = float(i);
+        ty = floor(fi/32.0)/32.0;
+        tx = mod(fi,32.0)/32.0;
+        cy = texture2D(texNoise1,vec2(tx,ty)).r;
+        vec2 Xi = vec2(cx,cy);// Hammersley( i, NumSamples );
+        cx+=dx;
         vec3 H = ImportanceSampleGGX( Xi, Roughness, N );
         vec3 L = 2. * dot( V, H ) * H - V;
         float NoV = max( dot( N, V ),0.);
@@ -133,6 +146,7 @@ vec3 SpecularIBL( vec3 SpecularColor , float Roughness, vec3 N, vec3 V ){
         if( NoL > 0. ){
             vec4 SampleColor;
             texPanorama(texEnv, L, SampleColor);
+            SampleColor.rgb = _RGBEToRGB(SampleColor);
             //vec3 SampleColor = EnvMap.SampleLevel( EnvMapSampler , L, 0 ).rgb;
             //float G = G_Smith( Roughness, NoV, NoL );
             float k= Roughness * sqrt(2.0/3.14159265);
@@ -163,7 +177,8 @@ void main() {
     float NdotV_clamped= max(NdotV, 0.0);
     //F的参数到底是halfVec还是normal
     float brdf_spec= fresnel(u_fresnel0, /*halfVec*/normal, u_lightDir) * geometry(normal, halfVec, view, u_lightDir, u_roughness) * distribution(normal, halfVec, u_roughness) / (4.0 * NdotL_clamped * NdotV_clamped);
-    vec3 color_spec= NdotL_clamped * brdf_spec * u_lightColor;
+    //vec3 color_spec= NdotL_clamped * brdf_spec * u_lightColor;
+    vec3 color_spec = SpecularIBL(vec3(1.,1.,1.),u_roughness,normal, view);
     vec3 color_diff= NdotL_clamped * (1.0-u_fresnel0) * u_diffuseColor * u_lightColor;
 
     vec3 col = basecolor;
@@ -173,7 +188,8 @@ void main() {
     refcol.rgb = _RGBEToRGB(refcol);
     //vec3 col1 = _RGBEToRGB(texture2D(texEnv,vNorm.xy));
 
+    vec4 noisev = texture2D(texNoise1,vUv);
     float f=distribution(normal, halfVec, u_roughness);
-    gl_FragColor.rgb = color_spec+color_diff;// (refcol.xyz);// basecolor;
+    gl_FragColor.rgb = color_spec;//+color_diff;// (refcol.xyz);// basecolor;
     gl_FragColor.a = 1.0;
 }
