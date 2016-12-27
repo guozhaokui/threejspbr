@@ -107,7 +107,7 @@ function setupScene(){
         texEnv:{value:texenv},
         texEnvl:{value:texenvl},
         texNoise1:{value:noiseTex1},
-        u_fresnel0:{value:1.0},
+        u_fresnel0:{value:{x:1.0,y:1.0,z:1.0}},
         u_roughness:{value:0.5},
         u_lightDir:{value:{x:0,y:1,z:0}}
     };
@@ -125,7 +125,7 @@ function setupScene(){
         color:0xffffffff,
         map:texenv0
     });
-    var skysphere = new THREE.Mesh( new THREE.SphereGeometry(13,40,40),mtlsky);
+    var skysphere = new THREE.Mesh( new THREE.SphereGeometry(100,40,40),mtlsky);
     scene.add(skysphere);
     sceok=true;
 }
@@ -135,20 +135,16 @@ function onloaded(){
 }
 
 //anim
-var f0=.2;
-var roughness=0.5;
+var effectController  = {
+    f0r:.2,
+    f0g:.2,
+    f0b:.2,
+    roughness:0.5
+};
 var lightdir=[0,1,0];
 function  update(){
     //cube.rotation.x +=0.1;
     controls.update();
-    if(sceok){
-        shadermtlparam.uniforms.u_fresnel0.value=f0;
-        shadermtlparam.uniforms.u_roughness.value = roughness;
-        var lightdirlen = Math.sqrt( lightdir[0]*lightdir[0]+lightdir[1]*lightdir[1]+lightdir[2]*lightdir[2]);
-        shadermtlparam.uniforms.u_lightDir.x = lightdir[0]/lightdirlen;
-        shadermtlparam.uniforms.u_lightDir.y = lightdir[1]/lightdirlen;
-        shadermtlparam.uniforms.u_lightDir.z = lightdir[2]/lightdirlen;
-    }
     if(sphere){
         //sphere.rotation.y +=0.01;
     }
@@ -176,3 +172,24 @@ function testReadHDR(){
 }
 
 //testReadHDR();
+
+//UI
+function onUniformChange(){
+    if(sceok){
+        //shadermtlparam.uniforms.u_fresnel0.value=f0;
+        shadermtlparam.uniforms.u_roughness.value = effectController.roughness;
+        var lightdirlen = Math.sqrt( lightdir[0]*lightdir[0]+lightdir[1]*lightdir[1]+lightdir[2]*lightdir[2]);
+        shadermtlparam.uniforms.u_lightDir.value.x = lightdir[0]/lightdirlen;
+        shadermtlparam.uniforms.u_lightDir.value.y = lightdir[1]/lightdirlen;
+        shadermtlparam.uniforms.u_lightDir.value.z = lightdir[2]/lightdirlen;
+        shadermtlparam.uniforms.u_fresnel0.value.x = effectController.f0r;
+        shadermtlparam.uniforms.u_fresnel0.value.y = effectController.f0g;
+        shadermtlparam.uniforms.u_fresnel0.value.z = effectController.f0b;
+    }
+}
+var gui = new (window as any).dat.GUI();
+gui.add(effectController,'f0r',0,1,0.01).onChange(onUniformChange);
+gui.add(effectController,'f0g',0,1,0.01).onChange(onUniformChange);
+gui.add(effectController,'f0b',0,1,0.01).onChange(onUniformChange);
+gui.add(effectController,'roughness',0,1,0.01).onChange(onUniformChange);
+alert(gui);

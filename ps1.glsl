@@ -163,7 +163,7 @@ vec3 SpecularIBL( vec3 SpecularColor , float Roughness, vec3 N, vec3 V ){
     return SpecularLighting / float(NumSamples);
 }
 
-uniform float u_fresnel0;
+uniform vec3 u_fresnel0;
 uniform float u_roughness;
 vec3 u_lightColor = vec3(1.,1.,1.);
 vec3 u_diffuseColor = vec3(0.1,0.1,0.1);
@@ -176,10 +176,10 @@ void main() {
     float NdotL_clamped= max(NdotL, 0.0);
     float NdotV_clamped= max(NdotV, 0.0);
     //F的参数到底是halfVec还是normal
-    float brdf_spec= fresnel(u_fresnel0, /*halfVec*/normal, u_lightDir) * geometry(normal, halfVec, view, u_lightDir, u_roughness) * distribution(normal, halfVec, u_roughness) / (4.0 * NdotL_clamped * NdotV_clamped);
+    float brdf_spec= fresnel(u_fresnel0.x, /*halfVec*/normal, u_lightDir) * geometry(normal, halfVec, view, u_lightDir, u_roughness) * distribution(normal, halfVec, u_roughness) / (4.0 * NdotL_clamped * NdotV_clamped);
     //vec3 color_spec= NdotL_clamped * brdf_spec * u_lightColor;
-    vec3 color_spec = SpecularIBL(vec3(1.,1.,1.),u_roughness,normal, view);
-    vec3 color_diff= NdotL_clamped * (1.0-u_fresnel0) * u_diffuseColor * u_lightColor;
+    vec3 color_spec = SpecularIBL(u_fresnel0,u_roughness,normal, view);
+    vec3 color_diff= NdotL_clamped * (1.0-u_fresnel0.x) * u_diffuseColor * u_lightColor;
 
     vec3 col = basecolor;
     //col += BRDF();
