@@ -124,6 +124,77 @@ vec3 ImportanceSampleGGX( vec2 Xi, float Roughness, vec3 N ){
     return TangentX * H.x + TangentY * H.y + N * H.z;
 }
 
+vec3 PrefilterEnvMap( float Roughness , vec3 R ){
+    vec3 N = R;
+    vec3 V = R;
+    vec3 PrefilteredColor = vec3(0.,0.,0.);
+    float TotalWeight = 0.;
+    const uint NumSamples = 1024u;
+    for( uint i = 0u; i < NumSamples; i++ ) {
+        vec2 Xi = Hammersley( i, NumSamples );
+        vec3 H = ImportanceSampleGGX( Xi, Roughness , N );
+        vec3 L = 2. * dot( V, H ) * H - V;
+        float NoL = max( dot( N, L ),0. );
+        if( NoL > 0. ){
+            vec4 SampleColor;
+            texPanorama(texEnv, L, SampleColor);
+            PrefilteredColor += SampleColor.rgb * NoL;
+            TotalWeight += NoL;
+        }
+    }
+    return PrefilteredColor / TotalWeight;
+}
+
+float saturate(float v){
+    return min(max(v,0.),1.);
+}
+
+vec2 IntegrateBRDF( float Roughness , float NoV ){
+    vec3 V;
+    vec3 N;
+    V.x = sqrt( 1.0f - NoV * NoV ); // sin
+    V.y = 0.;
+    V.z = NoV; // cos
+    float A = 0.;
+    float B = 0.;
+    const uint NumSamples = 1024u;
+    for( uint i = 0u; i < NumSamples; i++ ){
+        vec2 Xi = Hammersley( i, NumSamples );
+        vec3 H = ImportanceSampleGGX( Xi, Roughness , N );
+        vec3 L = 2. * dot( V, H ) * H - V;
+        float NoL = saturate( L.z );
+        float NoH = saturate( H.z );
+        float VoH = saturate( dot( V, H ) );
+        if( NoL > 0. ){
+            float G = 0.;//TODO G_Smith( Roughness , NoV, NoL );
+            float G_Vis = G * VoH / (NoH * NoV);
+            float Fc = pow( 1. - VoH, 5. );
+            A += (1. - Fc) * G_Vis;
+            B += Fc * G_Vis;
+        }
+    }
+    return vec2( A, B ) / float(NumSamples);
+}
+
+vec3 ApproximateSpecularIBL( vec3 SpecularColor , float Roughness , vec3 N, vec3 V ){
+    float NoV = saturate( dot( N, V ) );
+    vec3 R = 2. * dot( V, N ) * N - V;
+    vec3 PrefilteredColor = PrefilterEnvMap( Roughness , R );
+    vec2 EnvBRDF = IntegrateBRDF( Roughness , NoV );
+    return PrefilteredColor * ( SpecularColor * EnvBRDF.x + EnvBRDF.y );
+}
+
+/*
+vec3 EnvBRDF( vec3 SpecularColor, float Roughness, float NoV ){
+    // Importance sampled preintegrated G * F
+    vec2 AB = texture( PreIntegratedGF, PreIntegratedGFSampler, vec2( NoV, Roughness ), 0. ).rg;
+    // Anything less than 2% is physically impossible and is instead considered to be shadowing 
+    vec3 GF = SpecularColor * AB.x + saturate( 50.0 * SpecularColor.g ) * AB.y;
+    return GF;
+}
+*/
+
+
 vec3 SpecularIBL( vec3 SpecularColor , float Roughness, vec3 N, vec3 V ){
     vec3 SpecularLighting = vec3(0.,0.,0.);
     const uint NumSamples = 1024u;//1024;
