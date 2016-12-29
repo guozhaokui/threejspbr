@@ -68,7 +68,7 @@ float geometry(vec3 n, vec3 h, vec3 v, vec3 l, float roughness){
     return ( NdotL_clamped / (NdotL_clamped * one_minus_k + k) ) * ( NdotV_clamped / (NdotV_clamped * one_minus_k + k) );
 }
 
-/* TODO 不支持 uint和 >> 怎么办  #version 130
+// TODO 不支持 uint和 >> 怎么办  #version 130
 //http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html#wong97
  float radicalInverse_VdC(uint bits) {
      bits = (bits << 16u) | (bits >> 16u);
@@ -78,16 +78,8 @@ float geometry(vec3 n, vec3 h, vec3 v, vec3 l, float roughness){
      bits = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
      return float(bits) * 2.3283064365386963e-10; // / 0x100000000
  }
-*/
-float radicalInverse_VdC(int bits) {
-    //TODO 这个怎么实现。
-    //const float a0
-    const int a=1;
-    int b= a&1;
-    return 0.5;
-}
- 
-vec2 hammersley2d(int i, int N) {
+
+vec2 hammersley2d(uint i, uint N) {
     return vec2(float(i)/float(N), radicalInverse_VdC(i));
 }
 
@@ -108,7 +100,7 @@ vec3 hemisphereSample_cos(float u, float v) {
     return vec3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
 }
 
-vec2 Hammersley(int i, int NumSamples){
+vec2 Hammersley(uint i, uint NumSamples){
     return hammersley2d(i,NumSamples);
 }
 
@@ -125,7 +117,7 @@ vec3 ImportanceSampleGGX( vec2 Xi, float Roughness, vec3 N ){
     H.x = SinTheta * cos( Phi );
     H.y = SinTheta * sin( Phi );
     H.z = CosTheta;//Z向上，应该对应N
-    vec3 UpVector = abs(N.z) < 0.999999 ? vec3(0.,0.,1.) : vec3(1.,0.,0.);
+    vec3 UpVector = abs(N.z) < 0.9999 ? vec3(0.,0.,1.) : vec3(1.,0.,0.);
     vec3 TangentX = normalize( cross( UpVector,N ) );
     vec3 TangentY = cross( N, TangentX );
     // Tangent to world space
@@ -134,18 +126,18 @@ vec3 ImportanceSampleGGX( vec2 Xi, float Roughness, vec3 N ){
 
 vec3 SpecularIBL( vec3 SpecularColor , float Roughness, vec3 N, vec3 V ){
     vec3 SpecularLighting = vec3(0.,0.,0.);
-    const int NumSamples = 1024;//1024;
+    const uint NumSamples = 1024u;//1024;
     float dx = 1.0/float(NumSamples);
     float cx = 0.;
     float cy = 0.;
     float tx = 0.;
     float ty = 0.;
-    for( int i = 0; i < NumSamples; i++ ){
+    for( uint i = 0u; i < NumSamples; i++ ){
         float fi = float(i);
-        ty = floor(fi/32.0)/32.0;
-        tx = mod(fi,32.0)/32.0;
-        cy = texture(texNoise1,vec2(tx,ty)).r;
-        vec2 Xi = vec2(float(i)*dx,cy);// Hammersley( i, NumSamples );
+        //ty = floor(fi/32.0)/32.0;
+        //tx = mod(fi,32.0)/32.0;
+        //cy = texture(texNoise1,vec2(tx,ty)).r;
+        vec2 Xi = Hammersley( i, NumSamples );//vec2(float(i)*dx,cy);// 
         //cx+=dx;
         //当前采样到的法线
         //因为要计算当H为某个值的时候的概率密度函数和其他与H相关的分量
