@@ -16376,7 +16376,7 @@
 		if ( material.isRawShaderMaterial ) {
 
 			prefixVertex = [
-
+'#version 300 es',
 				customDefines,
 
 				'\n'
@@ -16384,7 +16384,7 @@
 			].filter( filterEmptyLine ).join( '\n' );
 
 			prefixFragment = [
-
+'#version 300 es',
 				customExtensions,
 				customDefines,
 
@@ -19775,11 +19775,11 @@
 				preserveDrawingBuffer: _preserveDrawingBuffer
 			};
 
-			_gl = _context || _canvas.getContext( 'webgl', attributes ) || _canvas.getContext( 'experimental-webgl', attributes );
+			_gl = _context || _canvas.getContext( 'webgl2', attributes ) ;
 
 			if ( _gl === null ) {
 
-				if ( _canvas.getContext( 'webgl' ) !== null ) {
+				if ( _canvas.getContext( 'webgl2' ) !== null ) {
 
 					throw 'Error creating WebGL context with your selected attributes.';
 

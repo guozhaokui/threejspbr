@@ -111,11 +111,10 @@ function setupScene(){
         u_roughness:{value:0.5},
         u_lightDir:{value:{x:0,y:1,z:0}}
     };
-    var mtl2 = new THREE.ShaderMaterial(shadermtlparam);
+    var mtl2 = new THREE.RawShaderMaterial(shadermtlparam);
     //mtl2.extensions = {a:0};
-
     //scene obj
-    var geometry = new THREE.SphereGeometry(1,40,40);
+    var geometry = new THREE.SphereGeometry(1,40,40);//THREE.BoxGeometry(1,1,1);// 
     //var material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
     sphere = new THREE.Mesh( geometry, mtl2 );
     scene.add( sphere );
@@ -192,4 +191,3 @@ gui.add(effectController,'f0r',0,1,0.01).onChange(onUniformChange);
 gui.add(effectController,'f0g',0,1,0.01).onChange(onUniformChange);
 gui.add(effectController,'f0b',0,1,0.01).onChange(onUniformChange);
 gui.add(effectController,'roughness',0,1,0.01).onChange(onUniformChange);
-alert(gui);

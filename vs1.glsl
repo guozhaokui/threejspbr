@@ -1,11 +1,25 @@
 
-varying vec2 vUv;
-varying vec3 vWorldNorm;
-varying vec4 vViewPos;
-varying vec4 vWorldPos;
-varying vec3 vLightDir;
-varying vec3 vViewDir;
-varying vec3 vRefDir;
+uniform mat4 modelMatrix;
+uniform mat4 modelViewMatrix;
+uniform mat4 projectionMatrix;
+uniform mat4 viewMatrix;
+uniform mat3 normalMatrix;
+uniform vec3 cameraPosition;
+
+in vec3 position;
+in vec3 normal;
+in vec2 uv;
+
+out vec2 vUv;
+out vec3 vWorldNorm;
+out vec4 vViewPos;
+out vec4 vWorldPos;
+out vec3 vLightDir;
+out vec3 vViewDir;
+out vec3 vRefDir;
+
+invariant gl_Position;
+
 void main() {
     vUv = uv;
     vWorldPos = modelMatrix*vec4(position, 1.0);

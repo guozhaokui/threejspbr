@@ -1,17 +1,24 @@
+//#version 300 es
 //#version 130
+precision highp float;
+precision highp int;
+uniform vec3 cameraPosition;
 
 float PI = 3.14159265358979323846264;
 const float _2PI = 6.2831853071796;
-varying vec2 vUv;
-varying vec3 vWorldNorm;
-varying vec3 vRefDir;
-varying vec3 vViewDir;
+in vec2 vUv;
+in vec3 vWorldNorm;
+in vec3 vRefDir;
+in vec3 vViewDir;
+in vec4 vWorldPos;
 uniform sampler2D tex1;
 uniform sampler2D texEnv;
 uniform sampler2D texEnvl;
 uniform sampler2D texNoise1;
 const vec3 basecolor=vec3(0.,0.5,0.);
 uniform vec3 u_lightDir;
+
+out vec4 fragColor;
 //const vec3 lpos=vec3()
 /*
 const float n=3;
@@ -34,7 +41,8 @@ vec3 _RGBEToRGB( const in vec4 rgba ){
 void texPanorama(sampler2D tex, const in vec3 dir, out vec4 rgba){
     float u = atan(-dir.z,dir.x)/_2PI+0.5;  //逆时针增加，所以z取负
     float v = asin(dir.y)/PI+0.5;
-    rgba = texture2D(tex, vec2(u,v));
+    //rgba = texture2D(tex, vec2(u,v));
+    rgba = texture(tex, vec2(u,v));
     //rgba = vec4(u,v,0.,0.);
 }
 
@@ -75,6 +83,7 @@ float radicalInverse_VdC(int bits) {
     //TODO 这个怎么实现。
     //const float a0
     const int a=1;
+    int b= a&1;
     return 0.5;
 }
  
@@ -108,15 +117,16 @@ vec2 Hammersley(int i, int NumSamples){
 //P4
 vec3 ImportanceSampleGGX( vec2 Xi, float Roughness, vec3 N ){
     float a = Roughness * Roughness;
-    float Phi = 2. * PI * Xi.x;
+    float Phi = 2. * PI * Xi.x;//与水平面x轴的夹角
     float CosTheta = sqrt( (1. - Xi.y) / ( 1. + (a*a - 1.) * Xi.y ) );
     float SinTheta = sqrt( 1. - CosTheta * CosTheta );
     vec3 H;
+    //TODO 这里需要修改朝向么，坐标系
     H.x = SinTheta * cos( Phi );
     H.y = SinTheta * sin( Phi );
-    H.z = CosTheta;
-    vec3 UpVector = abs(N.z) < 0.999 ? vec3(0.,0.,1.) : vec3(1.,0.,0.);
-    vec3 TangentX = normalize( cross( UpVector, N ) );
+    H.z = CosTheta;//Z向上，应该对应N
+    vec3 UpVector = abs(N.z) < 0.999999 ? vec3(0.,0.,1.) : vec3(1.,0.,0.);
+    vec3 TangentX = normalize( cross( UpVector,N ) );
     vec3 TangentY = cross( N, TangentX );
     // Tangent to world space
     return TangentX * H.x + TangentY * H.y + N * H.z;
@@ -124,8 +134,8 @@ vec3 ImportanceSampleGGX( vec2 Xi, float Roughness, vec3 N ){
 
 vec3 SpecularIBL( vec3 SpecularColor , float Roughness, vec3 N, vec3 V ){
     vec3 SpecularLighting = vec3(0.,0.,0.);
-    const int NumSamples = 1024;
-    float dx = 1.0/1024.0;
+    const int NumSamples = 1024;//1024;
+    float dx = 1.0/float(NumSamples);
     float cx = 0.;
     float cy = 0.;
     float tx = 0.;
@@ -134,11 +144,14 @@ vec3 SpecularIBL( vec3 SpecularColor , float Roughness, vec3 N, vec3 V ){
         float fi = float(i);
         ty = floor(fi/32.0)/32.0;
         tx = mod(fi,32.0)/32.0;
-        cy = texture2D(texNoise1,vec2(tx,ty)).r;
-        vec2 Xi = vec2(cx,cy);// Hammersley( i, NumSamples );
-        cx+=dx;
+        cy = texture(texNoise1,vec2(tx,ty)).r;
+        vec2 Xi = vec2(float(i)*dx,cy);// Hammersley( i, NumSamples );
+        //cx+=dx;
+        //当前采样到的法线
+        //因为要计算当H为某个值的时候的概率密度函数和其他与H相关的分量
+        //理论上可以随机，即可以不用考虑Roughness,但是这样更好
         vec3 H = ImportanceSampleGGX( Xi, Roughness, N );
-        vec3 L = 2. * dot( V, H ) * H - V;
+        vec3 L = 2. * dot( V, H ) * H - V;  //反射的光线
         float NoV = max( dot( N, V ),0.);
         float NoL = max( dot( N, L ),0. );
         float NoH = max( dot( N, H ),0. );
@@ -159,6 +172,7 @@ vec3 SpecularIBL( vec3 SpecularColor , float Roughness, vec3 N, vec3 V ){
             // pdf = D * NoH / (4 * VoH)
             SpecularLighting += SampleColor.rgb * F * G * VoH / (NoH * NoV);
         }
+        //return H;
     }
     return SpecularLighting / float(NumSamples);
 }
@@ -168,7 +182,8 @@ uniform float u_roughness;
 vec3 u_lightColor = vec3(1.,1.,1.);
 vec3 u_diffuseColor = vec3(0.1,0.1,0.1);
 void main() {
-    vec3 normal =  normalize(vWorldNorm);
+    //vec3 normal =  normalize(vWorldNorm);
+    vec3 normal =  normalize(vWorldPos.xyz);// 
     vec3 view   = -normalize(vViewDir);
     vec3 halfVec=  normalize(u_lightDir + view);//lightDir 是light所在位置的朝向，而不是入射光线的方向
     float NdotL= dot(normal, u_lightDir);
@@ -188,8 +203,8 @@ void main() {
     refcol.rgb = _RGBEToRGB(refcol);
     //vec3 col1 = _RGBEToRGB(texture2D(texEnv,vNorm.xy));
 
-    vec4 noisev = texture2D(texNoise1,vUv);
+    vec4 noisev = texture(texNoise1,vUv);
     float f=distribution(normal, halfVec, u_roughness);
-    gl_FragColor.rgb = color_spec;//+color_diff;// (refcol.xyz);// basecolor;
-    gl_FragColor.a = 1.0;
+    fragColor.rgb = color_spec;//+color_diff;// (refcol.xyz);// basecolor;
+    fragColor.a = 1.0;
 }

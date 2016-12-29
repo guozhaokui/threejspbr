@@ -1,5 +1,8 @@
 ﻿
 const {app,BrowserWindow,crashReporter} = require('electron');  // Module to control application life.
+
+app.commandLine.appendSwitch('enable-unsafe-es3-apis');
+
 crashReporter.start({
   productName: 'webgllab',
   companyName: 'layabox',
