@@ -68,6 +68,12 @@ float geometry(vec3 n, vec3 h, vec3 v, vec3 l, float roughness){
     return ( NdotL_clamped / (NdotL_clamped * one_minus_k + k) ) * ( NdotV_clamped / (NdotV_clamped * one_minus_k + k) );
 }
 
+float G_Smith( float Roughness, float NoV, float NoL ){
+    float k= Roughness * sqrt(2.0/3.14159265);
+    float one_minus_k= 1.0 -k;
+    return ( NoL / (NoL * one_minus_k + k) ) * ( NoV / (NoV * one_minus_k + k));
+}
+
 // TODO 不支持 uint和 >> 怎么办  #version 130
 //http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html#wong97
  float radicalInverse_VdC(uint bits) {
@@ -107,6 +113,7 @@ vec2 Hammersley(uint i, uint NumSamples){
 //https://de45xmedrsdbp.cloudfront.net/Resources/files/2013SiggraphPresentationsNotes-26915738.pdf
 //Image-Based Lighting
 //P4
+// N的作用是用来把生成的H转换到世界空间用。
 vec3 ImportanceSampleGGX( vec2 Xi, float Roughness, vec3 N ){
     float a = Roughness * Roughness;
     float Phi = 2. * PI * Xi.x;//与水平面x轴的夹角
@@ -124,8 +131,13 @@ vec3 ImportanceSampleGGX( vec2 Xi, float Roughness, vec3 N ){
     return TangentX * H.x + TangentY * H.y + N * H.z;
 }
 
+/*
+    环境贴图的预处理。
+    R 是入射灯光的朝向。
+    实际计算的时候用这个作为N来转换返回的H
+*/
 vec3 PrefilterEnvMap( float Roughness , vec3 R ){
-    vec3 N = R;
+    vec3 N = R;//TODO 用优化么
     vec3 V = R;
     vec3 PrefilteredColor = vec3(0.,0.,0.);
     float TotalWeight = 0.;
@@ -149,6 +161,11 @@ float saturate(float v){
     return min(max(v,0.),1.);
 }
 
+/*
+    BRDF部分的积分的预处理。
+    在排除F0以后，剩下的可以预计算了。
+    输入为 Roughness 和 cosθ。
+*/
 vec2 IntegrateBRDF( float Roughness , float NoV ){
     vec3 V;
     vec3 N;
@@ -166,11 +183,11 @@ vec2 IntegrateBRDF( float Roughness , float NoV ){
         float NoH = saturate( H.z );
         float VoH = saturate( dot( V, H ) );
         if( NoL > 0. ){
-            float G = 0.;//TODO G_Smith( Roughness , NoV, NoL );
+            float G = G_Smith( Roughness , NoV, NoL );
             float G_Vis = G * VoH / (NoH * NoV);
             float Fc = pow( 1. - VoH, 5. );
-            A += (1. - Fc) * G_Vis;
-            B += Fc * G_Vis;
+            A += (1. - Fc) * G_Vis; //F0的缩放部分 A*F0+B
+            B += Fc * G_Vis;        //F0的偏移部分
         }
     }
     return vec2( A, B ) / float(NumSamples);
@@ -194,6 +211,9 @@ vec3 EnvBRDF( vec3 SpecularColor, float Roughness, float NoV ){
 }
 */
 
+vec3 SpecularIBL1( vec3 SpecularColor , float Roughness, vec3 N, vec3 V ){
+    return ApproximateSpecularIBL(SpecularColor, Roughness, N, V);
+}
 
 vec3 SpecularIBL( vec3 SpecularColor , float Roughness, vec3 N, vec3 V ){
     vec3 SpecularLighting = vec3(0.,0.,0.);
@@ -214,6 +234,7 @@ vec3 SpecularIBL( vec3 SpecularColor , float Roughness, vec3 N, vec3 V ){
         //因为要计算当H为某个值的时候的概率密度函数和其他与H相关的分量
         //理论上可以随机，即可以不用考虑Roughness,但是这样更好
         vec3 H = ImportanceSampleGGX( Xi, Roughness, N );
+        //这个H对应的光源。
         vec3 L = 2. * dot( V, H ) * H - V;  //反射的光线
         float NoV = max( dot( N, V ),0.);
         float NoL = max( dot( N, L ),0. );
@@ -224,10 +245,7 @@ vec3 SpecularIBL( vec3 SpecularColor , float Roughness, vec3 N, vec3 V ){
             texPanorama(texEnv, L, SampleColor);
             SampleColor.rgb = _RGBEToRGB(SampleColor);
             //vec3 SampleColor = EnvMap.SampleLevel( EnvMapSampler , L, 0 ).rgb;
-            //float G = G_Smith( Roughness, NoV, NoL );
-            float k= Roughness * sqrt(2.0/3.14159265);
-            float one_minus_k= 1.0 -k;
-            float G = ( NoL / (NoL * one_minus_k + k) ) * ( NoV / (NoV * one_minus_k + k));
+            float G = G_Smith( Roughness, NoV, NoL );
             float Fc = pow( 1.0 - VoH, 5.0 );
             vec3 F = (1.0 - Fc) * SpecularColor + Fc;
             // Incident light = SampleColor * NoL
