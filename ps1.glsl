@@ -150,6 +150,7 @@ vec3 PrefilterEnvMap( float Roughness , vec3 R ){
         if( NoL > 0. ){
             vec4 SampleColor;
             texPanorama(texEnv, L, SampleColor);
+            SampleColor.rgb = _RGBEToRGB(SampleColor);
             PrefilteredColor += SampleColor.rgb * NoL;
             TotalWeight += NoL;
         }
@@ -198,6 +199,7 @@ vec3 ApproximateSpecularIBL( vec3 SpecularColor , float Roughness , vec3 N, vec3
     vec3 R = 2. * dot( V, N ) * N - V;
     vec3 PrefilteredColor = PrefilterEnvMap( Roughness , R );
     vec2 EnvBRDF = IntegrateBRDF( Roughness , NoV );
+    //return vec3(EnvBRDF,0.0); TODO 现在这个还不对
     return PrefilteredColor * ( SpecularColor * EnvBRDF.x + EnvBRDF.y );
 }
 
@@ -211,11 +213,11 @@ vec3 EnvBRDF( vec3 SpecularColor, float Roughness, float NoV ){
 }
 */
 
-vec3 SpecularIBL1( vec3 SpecularColor , float Roughness, vec3 N, vec3 V ){
+vec3 SpecularIBL( vec3 SpecularColor , float Roughness, vec3 N, vec3 V ){
     return ApproximateSpecularIBL(SpecularColor, Roughness, N, V);
 }
 
-vec3 SpecularIBL( vec3 SpecularColor , float Roughness, vec3 N, vec3 V ){
+vec3 SpecularIBL1( vec3 SpecularColor , float Roughness, vec3 N, vec3 V ){
     vec3 SpecularLighting = vec3(0.,0.,0.);
     const uint NumSamples = 1024u;//1024;
     float dx = 1.0/float(NumSamples);
@@ -236,10 +238,10 @@ vec3 SpecularIBL( vec3 SpecularColor , float Roughness, vec3 N, vec3 V ){
         vec3 H = ImportanceSampleGGX( Xi, Roughness, N );
         //这个H对应的光源。
         vec3 L = 2. * dot( V, H ) * H - V;  //反射的光线
-        float NoV = max( dot( N, V ),0.);
-        float NoL = max( dot( N, L ),0. );
-        float NoH = max( dot( N, H ),0. );
-        float VoH = max( dot( V, H ),0. );
+        float NoV = saturate( dot( N, V ));
+        float NoL = saturate( dot( N, L ));
+        float NoH = saturate( dot( N, H ));
+        float VoH = saturate( dot( V, H ));
         if( NoL > 0. ){
             vec4 SampleColor;
             texPanorama(texEnv, L, SampleColor);
