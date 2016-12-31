@@ -1,4 +1,7 @@
+import { testModel } from './model';
 /// <reference path="typings/index.d.ts" />
+/// <reference path="model.ts" />
+
 
 var scene = new THREE.Scene();
 var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
@@ -126,6 +129,18 @@ function setupScene(){
     });
     var skysphere = new THREE.Mesh( new THREE.SphereGeometry(100,40,40),mtlsky);
     scene.add(skysphere);
+
+    var objmodloader = new THREE.OBJLoader();
+    objmodloader.load('./assets/models/o.obj',function(o:THREE.Group){
+        o.children.forEach((v:THREE.Mesh)=>{
+            var tex1 = loader.load('./assets/models/'+v.name+ '_D.png',tex=>{});
+            var mtl = new THREE.MeshBasicMaterial({map:tex1});
+            v.material = mtl;
+            var b=v;
+        });
+        scene.add(o);
+    });
+
     sceok=true;
 }
 
