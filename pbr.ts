@@ -1,6 +1,4 @@
-import { testModel } from './model';
 /// <reference path="typings/index.d.ts" />
-/// <reference path="model.ts" />
 
 
 var scene = new THREE.Scene();
@@ -130,7 +128,7 @@ function setupScene(){
     var skysphere = new THREE.Mesh( new THREE.SphereGeometry(100,40,40),mtlsky);
     scene.add(skysphere);
 
-    var objmodloader = new THREE.OBJLoader();
+    var objmodloader = new (THREE as any).OBJLoader();
     objmodloader.load('./assets/models/o.obj',function(o:THREE.Group){
         o.children.forEach((v:THREE.Mesh)=>{
             var tex1 = loader.load('./assets/models/'+v.name+ '_D.png',tex=>{});
@@ -138,7 +136,7 @@ function setupScene(){
             v.material = mtl;
             var b=v;
         });
-        scene.add(o);
+        //scene.add(o);
     });
 
     sceok=true;

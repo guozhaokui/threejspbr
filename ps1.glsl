@@ -168,8 +168,8 @@ float saturate(float v){
     输入为 Roughness 和 cosθ。
 */
 vec2 IntegrateBRDF( float Roughness , float NoV ){
+    vec3 N=vec3(0.,0.,1.);//TODO 为什么是 001呢
     vec3 V;
-    vec3 N;
     V.x = sqrt( 1.0f - NoV * NoV ); // sin
     V.y = 0.;
     V.z = NoV; // cos
@@ -199,7 +199,6 @@ vec3 ApproximateSpecularIBL( vec3 SpecularColor , float Roughness , vec3 N, vec3
     vec3 R = 2. * dot( V, N ) * N - V;
     vec3 PrefilteredColor = PrefilterEnvMap( Roughness , R );
     vec2 EnvBRDF = IntegrateBRDF( Roughness , NoV );
-    //return vec3(EnvBRDF,0.0); TODO 现在这个还不对
     return PrefilteredColor * ( SpecularColor * EnvBRDF.x + EnvBRDF.y );
 }
 
@@ -265,8 +264,8 @@ uniform float u_roughness;
 vec3 u_lightColor = vec3(1.,1.,1.);
 vec3 u_diffuseColor = vec3(0.1,0.1,0.1);
 void main() {
-    //vec3 normal =  normalize(vWorldNorm);
-    vec3 normal =  normalize(vWorldPos.xyz);// 
+    vec3 normal =  normalize(vWorldNorm);
+    //vec3 normal =  normalize(vWorldPos.xyz);// 
     vec3 view   = -normalize(vViewDir);
     vec3 halfVec=  normalize(u_lightDir + view);//lightDir 是light所在位置的朝向，而不是入射光线的方向
     float NdotL= dot(normal, u_lightDir);
