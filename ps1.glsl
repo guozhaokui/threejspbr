@@ -14,7 +14,9 @@ in vec4 vWorldPos;
 uniform sampler2D tex1;
 uniform sampler2D texEnv;
 uniform sampler2D texEnvl;
+uniform sampler2D texPreFilterdEnv;
 uniform sampler2D texNoise1;
+uniform sampler2D texBRDFLUT;
 const vec3 basecolor=vec3(0.,0.5,0.);
 uniform vec3 u_lightDir;
 
@@ -29,6 +31,13 @@ vec3 BRDF( vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y ){
     return vec3(val);
 }
 */
+//const float _ff00=256.0*256.0;
+const float _maxu8 = 255.0;
+const float _maxu16 = 65535.0;
+const float _shift8 = 256.0;    //平移的话是*256而不是255
+vec2 _RGBAToU16(const in vec4 rgba){
+    return vec2((rgba.r*_maxu8+rgba.g*_maxu8*_shift8)/_maxu16, (rgba.b*_maxu8+rgba.a*_maxu8*_shift8)/_maxu16);
+}
 
 vec3 _RGBEToRGB( const in vec4 rgba ){
     float f = pow(2.0, rgba.w * 255.0 - (128.0 + 8.0));
@@ -43,7 +52,33 @@ void texPanorama(sampler2D tex, const in vec3 dir, out vec4 rgba){
     float v = asin(dir.y)/PI+0.5;
     //rgba = texture2D(tex, vec2(u,v));
     rgba = texture(tex, vec2(u,v));
-    //rgba = vec4(u,v,0.,0.);
+    /*
+    float u1 = floor(u*10.);
+    float v1 = floor(v*10.);
+    float vv = mod(floor(u1+v1),2.);
+    if(vv<1.0){
+        rgba = vec4(0.,0.,0.,0.5);
+    }else{
+        rgba =  vec4(1.,1.,1.,0.5);
+    }
+    rgba = vec4(dir,0.);
+    */
+}
+
+void texPanoramaLod(sampler2D tex, const in vec3 dir, out vec4 rgba, int lod){
+    float u = atan(-dir.z,dir.x)/_2PI+0.5;  //逆时针增加，所以z取负
+    float v = asin(dir.y)/PI+0.5;
+    //rgba = texture2D(tex, vec2(u,v));
+    //rgba = texture(tex, vec2(u,v));
+    float u1 = floor(u*10.);
+    float v1 = floor(v*10.);
+    float vv = mod(floor(u1+v1),2.);
+    if(vv<1.0){
+        rgba = vec4(0.,0.,0.,0.5);
+    }else{
+        rgba =  vec4(1.,1.,1.,0.5);
+    }
+    rgba = vec4(dir,0.);
 }
 
 //fresnel_schlick
@@ -194,12 +229,20 @@ vec2 IntegrateBRDF( float Roughness , float NoV ){
     return vec2( A, B ) / float(NumSamples);
 }
 
+//#define USEPRETEX 
 vec3 ApproximateSpecularIBL( vec3 SpecularColor , float Roughness , vec3 N, vec3 V ){
     float NoV = saturate( dot( N, V ) );
     vec3 R = 2. * dot( V, N ) * N - V;
+  #ifdef USEPRETEX
+    vec4 PrefilteredColor;
+    texPanoramaLod(texPreFilterdEnv, R, PrefilteredColor, int(floor(Roughness*8.0)));
+    vec2 EnvBRDF = texture(texBRDFLUT,vec2(Roughness , NoV)).rg;//TODO lod
+    return PrefilteredColor.rgb * EnvBRDF.x + saturate( 50.0 * PrefilteredColor.g ) * EnvBRDF.y;
+  #else
     vec3 PrefilteredColor = PrefilterEnvMap( Roughness , R );
     vec2 EnvBRDF = IntegrateBRDF( Roughness , NoV );
-    return PrefilteredColor * ( SpecularColor * EnvBRDF.x + EnvBRDF.y );
+    return PrefilteredColor * ( SpecularColor * EnvBRDF.x + EnvBRDF.y );//TODO 这里应该没有括号
+  #endif
 }
 
 /*
@@ -287,6 +330,9 @@ void main() {
 
     vec4 noisev = texture(texNoise1,vUv);
     float f=distribution(normal, halfVec, u_roughness);
+
+    vec4 brdflutc = texture(texBRDFLUT, vUv);
+    vec2 rg = _RGBAToU16(brdflutc);
     fragColor.rgb = color_spec;//+color_diff;// (refcol.xyz);// basecolor;
     fragColor.a = 1.0;
 }

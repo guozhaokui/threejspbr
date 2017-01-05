@@ -4,7 +4,6 @@
 var scene = new THREE.Scene();
 var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
 
-import * as fs from 'fs';
 
 var renderer = new THREE.WebGLRenderer();
 renderer.setSize( window.innerWidth, window.innerHeight );
@@ -52,6 +51,18 @@ var loadermgr = new THREE.LoadingManager(
         console.log(url+','+loaded+','+total);
     }
 )
+
+var binxhrloader = new THREE.XHRLoader(loadermgr);
+binxhrloader.responseType='arraybuffer';
+var texBRDFLUT:THREE.DataTexture=null;
+binxhrloader.load('./imgs/oo.raw',(res)=>{
+    var ab = (res as any) as ArrayBuffer;
+    var u8ab = new Uint8Array(ab);
+    texBRDFLUT = new THREE.DataTexture(u8ab,256,256,THREE.RGBAFormat,THREE.UnsignedByteType,THREE.Texture.DEFAULT_MAPPING,
+    THREE.ClampToEdgeWrapping, THREE.ClampToEdgeWrapping,THREE.NearestFilter,THREE.NearestFilter);
+    texBRDFLUT.needsUpdate=true;
+});
+
 
 var sphere:THREE.Mesh=null;
 var glslloader = new THREE.XHRLoader(loadermgr);
@@ -107,6 +118,7 @@ function setupScene(){
         tex1:{value:tex1},
         texEnv:{value:texenv},
         texEnvl:{value:texenvl},
+        texBRDFLUT:{value:texBRDFLUT},
         texNoise1:{value:noiseTex1},
         u_fresnel0:{value:{x:1.0,y:1.0,z:1.0}},
         u_roughness:{value:0.5},
@@ -115,7 +127,7 @@ function setupScene(){
     var mtl2 = new THREE.RawShaderMaterial(shadermtlparam);
     //mtl2.extensions = {a:0};
     //scene obj
-    var geometry = new THREE.SphereGeometry(1,40,40);//THREE.BoxGeometry(1,1,1);// 
+    var geometry = new THREE.BoxGeometry(2,2,2,20,20,20);// THREE.SphereGeometry(1,60,60);//
     //var material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
     sphere = new THREE.Mesh( geometry, mtl2 );
     scene.add( sphere );
@@ -133,7 +145,9 @@ function setupScene(){
         o.children.forEach((v:THREE.Mesh)=>{
             var tex1 = loader.load('./assets/models/'+v.name+ '_D.png',tex=>{});
             var mtl = new THREE.MeshBasicMaterial({map:tex1});
-            v.material = mtl;
+            v.material = mtl2;
+            //v.scale.set(0.05,0.05,0.05);
+            v.position.set(1.5,0,0);
             var b=v;
         });
         //scene.add(o);
@@ -148,9 +162,9 @@ function onloaded(){
 
 //anim
 var effectController  = {
-    f0r:.2,
-    f0g:.2,
-    f0b:.2,
+    f0r:1.0,
+    f0g:1.0,
+    f0b:1.0,
     roughness:0.5
 };
 var lightdir=[0,1,0];
@@ -174,6 +188,7 @@ var ll = new THREE.ObjectLoader();
 
 var parsehdr = require('parse-hdr');
 function testReadHDR(){
+    /*
     var file = 'F:/work/osgjs/examples/hdr/textures/Walk_Of_Fame/Mans_Outside_2k.hdr';
     var buff = fs.readFileSync(file);
     var img = parsehdr(buff);
@@ -181,6 +196,7 @@ function testReadHDR(){
     console.log(img.exposure);
     console.log(img.gamma);
     console.log(img.data[1]);//w*h*3
+    */
 }
 
 //testReadHDR();
