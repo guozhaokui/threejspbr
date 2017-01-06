@@ -13,7 +13,6 @@ in vec3 vViewDir;
 in vec4 vWorldPos;
 uniform sampler2D tex1;
 uniform sampler2D texEnv;
-uniform sampler2D texEnvl;
 uniform sampler2D texPreFilterdEnv;
 uniform sampler2D texNoise1;
 uniform sampler2D texBRDFLUT;

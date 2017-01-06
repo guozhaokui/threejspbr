@@ -28,19 +28,6 @@ dirlight.shadow.mapSize.height=1024;
 var d=300;
 //dirlight.shadow.camera.left=-d;
 
-//texture
-var loader = new THREE.TextureLoader();
-var tex1 = loader.load('./imgs/test1.png',(tex)=>{
-});
-tex1.wrapS=tex1.wrapT=THREE.RepeatWrapping;
-tex1.anisotropy=16;
-
-var texenv0 = loader.load('./imgs/env/env2.jpg',tex=>{});
-var texenv = loader.load('./imgs/env/env2_2k.png',tex=>{});
-texenv.wrapS=THREE.RepeatWrapping;
-texenv.minFilter = THREE.NearestFilter;
-var texenvl = loader.load('./imgs/env/env2_Env.png',tex=>{});
-
 //var geo2 = new THREE.ParametricGeometry(clothFunction,cloth.w,cloth.h);
 //geo2.dynamic = true;
 
@@ -51,6 +38,33 @@ var loadermgr = new THREE.LoadingManager(
         console.log(url+','+loaded+','+total);
     }
 )
+
+//texture
+var loader = new THREE.TextureLoader(loadermgr);
+var tex1 = loader.load('./imgs/test1.png',(tex)=>{
+});
+tex1.wrapS=tex1.wrapT=THREE.RepeatWrapping;
+tex1.anisotropy=16;
+
+
+function loadEnv(env:string):THREE.Texture{
+    var p = './imgs/env/'+env;
+
+    var texenv0 = loader.load('./imgs/env/env2.jpg',tex=>{});
+    var texenv = loader.load('./imgs/env/env2_2k.png',tex=>{});
+    texenv.wrapS=THREE.RepeatWrapping;
+    texenv.minFilter = THREE.NearestFilter;
+
+    var mtlsky = new THREE.MeshBasicMaterial({
+        side:THREE.DoubleSide,
+        color:0xffffffff,
+        map:texenv0
+    });
+    var skysphere = new THREE.Mesh( new THREE.SphereGeometry(100,40,40),mtlsky);
+    scene.add(skysphere);
+    return texenv;
+}
+var texenv = loadEnv('AtticRoom');
 
 var binxhrloader = new THREE.XHRLoader(loadermgr);
 binxhrloader.responseType='arraybuffer';
@@ -117,7 +131,6 @@ function setupScene(){
     shadermtlparam.uniforms={
         tex1:{value:tex1},
         texEnv:{value:texenv},
-        texEnvl:{value:texenvl},
         texBRDFLUT:{value:texBRDFLUT},
         texNoise1:{value:noiseTex1},
         u_fresnel0:{value:{x:1.0,y:1.0,z:1.0}},
@@ -131,14 +144,6 @@ function setupScene(){
     //var material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
     sphere = new THREE.Mesh( geometry, mtl2 );
     scene.add( sphere );
-
-    var mtlsky = new THREE.MeshBasicMaterial({
-        side:THREE.DoubleSide,
-        color:0xffffffff,
-        map:texenv0
-    });
-    var skysphere = new THREE.Mesh( new THREE.SphereGeometry(100,40,40),mtlsky);
-    scene.add(skysphere);
 
     var objmodloader = new (THREE as any).OBJLoader();
     objmodloader.load('./assets/models/o.obj',function(o:THREE.Group){
@@ -185,21 +190,6 @@ function render() {
 render();
 
 var ll = new THREE.ObjectLoader();
-
-var parsehdr = require('parse-hdr');
-function testReadHDR(){
-    /*
-    var file = 'F:/work/osgjs/examples/hdr/textures/Walk_Of_Fame/Mans_Outside_2k.hdr';
-    var buff = fs.readFileSync(file);
-    var img = parsehdr(buff);
-    console.log(img.shape);
-    console.log(img.exposure);
-    console.log(img.gamma);
-    console.log(img.data[1]);//w*h*3
-    */
-}
-
-//testReadHDR();
 
 //UI
 function onUniformChange(){
