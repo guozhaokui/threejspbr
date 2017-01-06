@@ -46,19 +46,49 @@ var tex1 = loader.load('./imgs/test1.png',(tex)=>{
 tex1.wrapS=tex1.wrapT=THREE.RepeatWrapping;
 tex1.anisotropy=16;
 
-
 function loadEnv(env:string):THREE.Texture{
-    var p = './imgs/env/'+env;
+    var p = './imgs/env/'+env+'/';
 
-    var texenv0 = loader.load('./imgs/env/env2.jpg',tex=>{});
-    var texenv = loader.load('./imgs/env/env2_2k.png',tex=>{});
+    var texenv = loader.load( p+'env_0.hdr.png',tex=>{});
     texenv.wrapS=THREE.RepeatWrapping;
     texenv.minFilter = THREE.NearestFilter;
 
     var mtlsky = new THREE.MeshBasicMaterial({
         side:THREE.DoubleSide,
         color:0xffffffff,
-        map:texenv0
+        map:loader.load(p+'env.png',tex=>{})
+    });
+    var skysphere = new THREE.Mesh( new THREE.SphereGeometry(100,40,40),mtlsky);
+    scene.add(skysphere);
+    return texenv;
+}
+
+function loadEnv1(env:string):THREE.Texture{
+    var p = './imgs/env/'+env+'/';
+
+    //var texenv = loader.load( p+'env_0.hdr.png',tex=>{});
+    var dt = new Uint8Array(2048*1024*4);
+    var texenv = new THREE.DataTexture(dt,2048,1024,THREE.RGBAFormat,THREE.UnsignedByteType,THREE.Texture.DEFAULT_MAPPING,
+        THREE.ClampToEdgeWrapping, THREE.ClampToEdgeWrapping,THREE.NearestFilter,THREE.NearestFilter);
+    texenv.mipmaps=[
+        new ImageData(2048,1024),
+        new ImageData(1024,512),
+        new ImageData(512,256),
+        new ImageData(256,128),
+        new ImageData(128,64),
+        new ImageData(64,32),
+        new ImageData(32,16),
+        new ImageData(16,8),
+        new ImageData(8,4),
+        new ImageData(4,2),
+        new ImageData(2,1),
+    ];
+
+    texenv.needsUpdate=true;
+    var mtlsky = new THREE.MeshBasicMaterial({
+        side:THREE.DoubleSide,
+        color:0xffffffff,
+        map:loader.load(p+'env.png',tex=>{})
     });
     var skysphere = new THREE.Mesh( new THREE.SphereGeometry(100,40,40),mtlsky);
     scene.add(skysphere);
