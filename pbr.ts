@@ -46,7 +46,7 @@ var tex1 = loader.load('./imgs/test1.png',(tex)=>{
 tex1.wrapS=tex1.wrapT=THREE.RepeatWrapping;
 tex1.anisotropy=16;
 
-function loadEnv(env:string):THREE.Texture{
+function loadEnv1(env:string):THREE.Texture{
     var p = './imgs/env/'+env+'/';
 
     var texenv = loader.load( p+'env_0.hdr.png',tex=>{});
@@ -56,21 +56,60 @@ function loadEnv(env:string):THREE.Texture{
     var mtlsky = new THREE.MeshBasicMaterial({
         side:THREE.DoubleSide,
         color:0xffffffff,
-        map:loader.load(p+'env.png',tex=>{})
+        map:loader.load(p+'env.png',tex=>{tex.minFilter=THREE.NearestFilter;})
     });
     var skysphere = new THREE.Mesh( new THREE.SphereGeometry(100,40,40),mtlsky);
     scene.add(skysphere);
     return texenv;
 }
 
-function loadEnv1(env:string):THREE.Texture{
+var binxhrloader = new THREE.XHRLoader(loadermgr);
+binxhrloader.responseType='arraybuffer';
+var texBRDFLUT:THREE.DataTexture=null;
+binxhrloader.load('./imgs/oo.raw',(res)=>{
+    var ab = (res as any) as ArrayBuffer;
+    var u8ab = new Uint8Array(ab);
+    texBRDFLUT = new THREE.DataTexture(u8ab,256,256,THREE.RGBAFormat,THREE.UnsignedByteType,THREE.Texture.DEFAULT_MAPPING,
+    THREE.ClampToEdgeWrapping, THREE.ClampToEdgeWrapping,THREE.NearestFilter,THREE.NearestFilter);
+    texBRDFLUT.needsUpdate=true;
+});
+
+function createImgDataFromRaw(Buff:Buffer):ImageData{
+    var w = Buff.readUInt32LE(0);
+    var h = Buff.readUInt32LE(4);
+    //var dtbuf = Buff.buffer.slice(8);
+    var data = new ImageData(w,h);
+    var dt1 = new Uint8ClampedArray(Buff.buffer,8);
+    data.data.forEach((v,i,arr)=>{
+        arr[i]=dt1[i];
+    })
+    return data;
+}
+
+function loadEnv(env:string):THREE.Texture{
     var p = './imgs/env/'+env+'/';
 
-    //var texenv = loader.load( p+'env_0.hdr.png',tex=>{});
-    var dt = new Uint8Array(2048*1024*4);
-    var texenv = new THREE.DataTexture(dt,2048,1024,THREE.RGBAFormat,THREE.UnsignedByteType,THREE.Texture.DEFAULT_MAPPING,
+    var fs = require('fs');
+    var dd = fs.readFileSync( p+'env_0.hdr.raw');
+
+    var dt1 = new Uint8Array(dd.buffer.slice(8));
+    var texenv = new THREE.DataTexture(dt1,2048,1024,THREE.RGBAFormat,THREE.UnsignedByteType,THREE.Texture.DEFAULT_MAPPING,
         THREE.ClampToEdgeWrapping, THREE.ClampToEdgeWrapping,THREE.NearestFilter,THREE.NearestFilter);
+
+    //var texenv = loader.load( p+'env_0.hdr.png',tex=>{});
+    var mip0 = createImgDataFromRaw( fs.readFileSync( p+'env_0.hdr.raw')); 
+    var mip1 = createImgDataFromRaw( fs.readFileSync( p+'env_1.hdr.raw'));
+    var mip2 = createImgDataFromRaw( fs.readFileSync( p+'env_2.hdr.raw'));
+    var mip3 = createImgDataFromRaw( fs.readFileSync( p+'env_3.hdr.raw'));
+    var mip4 = createImgDataFromRaw( fs.readFileSync( p+'env_4.hdr.raw'));
+    var mip5 = createImgDataFromRaw( fs.readFileSync( p+'env_5.hdr.raw'));
+    var mip6 = createImgDataFromRaw( fs.readFileSync( p+'env_6.hdr.raw'));
+    var mip7 = createImgDataFromRaw( fs.readFileSync( p+'env_7.hdr.raw'));
+    var mip8 = createImgDataFromRaw( fs.readFileSync( p+'env_8.hdr.raw'));
+    var mip9 = createImgDataFromRaw( fs.readFileSync( p+'env_9.hdr.raw'));
+    var mip10 = createImgDataFromRaw( fs.readFileSync( p+'env_10.hdr.raw'));
     texenv.mipmaps=[
+        /*
         new ImageData(2048,1024),
         new ImageData(1024,512),
         new ImageData(512,256),
@@ -82,8 +121,9 @@ function loadEnv1(env:string):THREE.Texture{
         new ImageData(8,4),
         new ImageData(4,2),
         new ImageData(2,1),
+        */
+        mip0,mip1,mip2,mip3,mip4,mip5,mip6,mip7,mip8,mip9,mip10
     ];
-
     texenv.needsUpdate=true;
     var mtlsky = new THREE.MeshBasicMaterial({
         side:THREE.DoubleSide,
@@ -96,16 +136,6 @@ function loadEnv1(env:string):THREE.Texture{
 }
 var texenv = loadEnv('AtticRoom');
 
-var binxhrloader = new THREE.XHRLoader(loadermgr);
-binxhrloader.responseType='arraybuffer';
-var texBRDFLUT:THREE.DataTexture=null;
-binxhrloader.load('./imgs/oo.raw',(res)=>{
-    var ab = (res as any) as ArrayBuffer;
-    var u8ab = new Uint8Array(ab);
-    texBRDFLUT = new THREE.DataTexture(u8ab,256,256,THREE.RGBAFormat,THREE.UnsignedByteType,THREE.Texture.DEFAULT_MAPPING,
-    THREE.ClampToEdgeWrapping, THREE.ClampToEdgeWrapping,THREE.NearestFilter,THREE.NearestFilter);
-    texBRDFLUT.needsUpdate=true;
-});
 
 
 var sphere:THREE.Mesh=null;
