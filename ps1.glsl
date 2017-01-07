@@ -1,5 +1,6 @@
 //#version 300 es
 //#version 130
+#define USEPRETEX 
 precision highp float;
 precision highp int;
 uniform vec3 cameraPosition;
@@ -50,7 +51,11 @@ void texPanorama(sampler2D tex, const in vec3 dir, out vec4 rgba){
     float u = atan(-dir.z,dir.x)/_2PI+0.5;  //逆时针增加，所以z取负
     float v = asin(dir.y)/PI+0.5;
     //rgba = texture2D(tex, vec2(u,v));
+    #ifdef USEPRETEX
+    rgba = texture(tex, vec2(u,1.-v));
+    #else
     rgba = texture(tex, vec2(u,v));
+    #endif
     /*
     float u1 = floor(u*10.);
     float v1 = floor(v*10.);
@@ -64,11 +69,16 @@ void texPanorama(sampler2D tex, const in vec3 dir, out vec4 rgba){
     */
 }
 
-void texPanoramaLod(sampler2D tex, const in vec3 dir, out vec4 rgba, int lod){
+void texPanoramaLod(sampler2D tex, const in vec3 dir, out vec4 rgba, float lod){
     float u = atan(-dir.z,dir.x)/_2PI+0.5;  //逆时针增加，所以z取负
     float v = asin(dir.y)/PI+0.5;
-    //rgba = texture2D(tex, vec2(u,v));
+    #ifdef USEPRETEX
+    rgba = textureLod(tex, vec2(u,1.-v),lod);
+    #else
+    rgba = textureLod(tex, vec2(u,v), lod);
+    #endif
     //rgba = texture(tex, vec2(u,v));
+    /*
     float u1 = floor(u*10.);
     float v1 = floor(v*10.);
     float vv = mod(floor(u1+v1),2.);
@@ -78,6 +88,7 @@ void texPanoramaLod(sampler2D tex, const in vec3 dir, out vec4 rgba, int lod){
         rgba =  vec4(1.,1.,1.,0.5);
     }
     rgba = vec4(dir,0.);
+    */
 }
 
 //fresnel_schlick
@@ -228,13 +239,13 @@ vec2 IntegrateBRDF( float Roughness , float NoV ){
     return vec2( A, B ) / float(NumSamples);
 }
 
-//#define USEPRETEX 
 vec3 ApproximateSpecularIBL( vec3 SpecularColor , float Roughness , vec3 N, vec3 V ){
     float NoV = saturate( dot( N, V ) );
     vec3 R = 2. * dot( V, N ) * N - V;
   #ifdef USEPRETEX
     vec4 PrefilteredColor;
-    texPanoramaLod(texPreFilterdEnv, R, PrefilteredColor, int(floor(Roughness*8.0)));
+    texPanoramaLod(texPreFilterdEnv, R, PrefilteredColor, floor(Roughness*8.0));
+    PrefilteredColor.rgb = _RGBEToRGB(PrefilteredColor);
     vec2 EnvBRDF = texture(texBRDFLUT,vec2(Roughness , NoV)).rg;//TODO lod
     return PrefilteredColor.rgb * EnvBRDF.x + saturate( 50.0 * PrefilteredColor.g ) * EnvBRDF.y;
   #else

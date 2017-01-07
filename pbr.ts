@@ -74,16 +74,19 @@ binxhrloader.load('./imgs/oo.raw',(res)=>{
     texBRDFLUT.needsUpdate=true;
 });
 
-function createImgDataFromRaw(Buff:Buffer):ImageData{
+function createImgDataFromRaw(Buff:Buffer){
     var w = Buff.readUInt32LE(0);
     var h = Buff.readUInt32LE(4);
     //var dtbuf = Buff.buffer.slice(8);
-    var data = new ImageData(w,h);
-    var dt1 = new Uint8ClampedArray(Buff.buffer,8);
+    //var data = new ImageData(w,h);    threejs不能直接使用ImageData对象，因为它需要Uint8Array
+    var dt1 = new Uint8Array(Buff.buffer,8);
+    return {width:w,height:h,data:dt1};
+    /*
     data.data.forEach((v,i,arr)=>{
         arr[i]=dt1[i];
     })
     return data;
+    */
 }
 
 function loadEnv(env:string):THREE.Texture{
@@ -92,8 +95,8 @@ function loadEnv(env:string):THREE.Texture{
     var fs = require('fs');
     var dd = fs.readFileSync( p+'env_0.hdr.raw');
 
-    var dt1 = new Uint8Array(dd.buffer.slice(8));
-    var texenv = new THREE.DataTexture(dt1,2048,1024,THREE.RGBAFormat,THREE.UnsignedByteType,THREE.Texture.DEFAULT_MAPPING,
+    //var dt1 = new Uint8Array(dd.buffer.slice(8));
+    var texenv = new THREE.DataTexture(null,2048,1024,THREE.RGBAFormat,THREE.UnsignedByteType,THREE.Texture.DEFAULT_MAPPING,
         THREE.ClampToEdgeWrapping, THREE.ClampToEdgeWrapping,THREE.NearestFilter,THREE.NearestFilter);
 
     //var texenv = loader.load( p+'env_0.hdr.png',tex=>{});
@@ -108,7 +111,7 @@ function loadEnv(env:string):THREE.Texture{
     var mip8 = createImgDataFromRaw( fs.readFileSync( p+'env_8.hdr.raw'));
     var mip9 = createImgDataFromRaw( fs.readFileSync( p+'env_9.hdr.raw'));
     var mip10 = createImgDataFromRaw( fs.readFileSync( p+'env_10.hdr.raw'));
-    texenv.mipmaps=[
+    (texenv as any).mipmaps =[
         /*
         new ImageData(2048,1024),
         new ImageData(1024,512),
