@@ -69,11 +69,27 @@ void texPanorama(sampler2D tex, const in vec3 dir, out vec4 rgba){
     */
 }
 
+/**
+//https://www.khronos.org/registry/gles/extensions/EXT/EXT_shader_texture_lod.txt
+#version 100
+#extension GL_EXT_shader_texture_lod : require
+
+attribute vec2      tex_st;
+uniform   sampler2D sampler;
+
+void main (void)
+{
+  // Note the EXT suffix, that is very important in ESSL 1.00
+  gl_FragColor = texture2DLodEXT (sampler, tex_st, 0);
+}
+*/
 void texPanoramaLod(sampler2D tex, const in vec3 dir, out vec4 rgba, float lod){
     float u = atan(-dir.z,dir.x)/_2PI+0.5;  //逆时针增加，所以z取负
     float v = asin(dir.y)/PI+0.5;
     #ifdef USEPRETEX
-    rgba = textureLod(tex, vec2(u,1.-v),lod);
+    v = 1.-v;
+    //rgba = textureLod(tex, vec2(u,v),lod);
+    rgba = texelFetch(tex,ivec2(int(2048.*u), int(1024.*v)),int(lod));
     #else
     rgba = textureLod(tex, vec2(u,v), lod);
     #endif
@@ -246,8 +262,9 @@ vec3 ApproximateSpecularIBL( vec3 SpecularColor , float Roughness , vec3 N, vec3
     vec4 PrefilteredColor;
     texPanoramaLod(texPreFilterdEnv, R, PrefilteredColor, floor(Roughness*8.0));
     PrefilteredColor.rgb = _RGBEToRGB(PrefilteredColor);
-    vec2 EnvBRDF = texture(texBRDFLUT,vec2(Roughness , NoV)).rg;//TODO lod
-    return PrefilteredColor.rgb * EnvBRDF.x + saturate( 50.0 * PrefilteredColor.g ) * EnvBRDF.y;
+    vec4 EnvBRDF = texture(texBRDFLUT,vec2(Roughness , NoV));//TODO lod
+    vec2 rg = _RGBAToU16(EnvBRDF);    
+    return PrefilteredColor.rgb * SpecularColor* rg.x + saturate( 50.0 * PrefilteredColor.g ) * rg.y;
   #else
     vec3 PrefilteredColor = PrefilterEnvMap( Roughness , R );
     vec2 EnvBRDF = IntegrateBRDF( Roughness , NoV );

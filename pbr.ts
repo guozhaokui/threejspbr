@@ -95,8 +95,8 @@ function loadEnv(env:string):THREE.Texture{
     var fs = require('fs');
     var dd = fs.readFileSync( p+'env_0.hdr.raw');
 
-    //var dt1 = new Uint8Array(dd.buffer.slice(8));
-    var texenv = new THREE.DataTexture(null,2048,1024,THREE.RGBAFormat,THREE.UnsignedByteType,THREE.Texture.DEFAULT_MAPPING,
+    var dt1 = null;// new Uint8Array(dd.buffer.slice(8));
+    var texenv = new THREE.DataTexture(dt1,2048,1024,THREE.RGBAFormat,THREE.UnsignedByteType,THREE.Texture.DEFAULT_MAPPING,
         THREE.ClampToEdgeWrapping, THREE.ClampToEdgeWrapping,THREE.NearestFilter,THREE.NearestFilter);
 
     //var texenv = loader.load( p+'env_0.hdr.png',tex=>{});
