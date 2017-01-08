@@ -97,7 +97,7 @@ function loadEnv(env:string):THREE.Texture{
 
     var dt1 = null;// new Uint8Array(dd.buffer.slice(8));
     var texenv = new THREE.DataTexture(dt1,2048,1024,THREE.RGBAFormat,THREE.UnsignedByteType,THREE.Texture.DEFAULT_MAPPING,
-        THREE.ClampToEdgeWrapping, THREE.ClampToEdgeWrapping,THREE.NearestFilter,THREE.LinearMipMapLinearFilter);
+        THREE.ClampToEdgeWrapping, THREE.ClampToEdgeWrapping,THREE.LinearFilter,THREE.LinearMipMapLinearFilter);
 
     //var texenv = loader.load( p+'env_0.hdr.png',tex=>{
     //    tex.minFilter = THREE.LinearMipMapLinearFilter;
@@ -132,8 +132,6 @@ function loadEnv(env:string):THREE.Texture{
 var texenv = loadEnv('AtticRoom');
 
 
-
-var sphere:THREE.Mesh=null;
 var glslloader = new THREE.XHRLoader(loadermgr);
 glslloader.load('./vs1.glsl');
 glslloader.load('./ps1.glsl');
@@ -141,24 +139,29 @@ glslloader.load('./ps1.glsl');
 var shadermtlparam :THREE.ShaderMaterialParameters={};
 var sceok=false;
 
+var noiseTex1 = new THREE.DataTexture(createHammersleyTex(32,32),32,32,THREE.RGBAFormat,THREE.FloatType,THREE.Texture.DEFAULT_MAPPING,
+    THREE.ClampToEdgeWrapping, THREE.ClampToEdgeWrapping,THREE.NearestFilter,THREE.NearestFilter);
+noiseTex1.needsUpdate =true;
+
 
 /**
  * vdc算法产生的序列。这个比random要均匀一些。
  */
-var tmpUint = new Uint32Array(1);
- function radicalInverse_VdC(bits:number):number {
-     //先颠倒前后16位
-     bits = (bits << 16) | (bits >>> 16);
-     //下面颠倒16位中的前后8位
-     bits = ((bits & 0x55555555) << 1) | ((bits & 0xAAAAAAAA) >>> 1);
-     bits = ((bits & 0x33333333) << 2) | ((bits & 0xCCCCCCCC) >>> 2);
-     bits = ((bits & 0x0F0F0F0F) << 4) | ((bits & 0xF0F0F0F0) >>> 4);
-     bits = ((bits & 0x00FF00FF) << 8) | ((bits & 0xFF00FF00) >>> 8);
-     //必须是uint的
-     tmpUint[0]=bits;
-     return tmpUint[0] * 2.3283064365386963e-10; // / 0x100000000
+function radicalInverse_VdC(bits:number):number {
+    var tmpUint = new Uint32Array(1);
+    return (function(bits:number){
+        //先颠倒前后16位
+        bits = (bits << 16) | (bits >>> 16);
+        //下面颠倒16位中的前后8位
+        bits = ((bits & 0x55555555) << 1) | ((bits & 0xAAAAAAAA) >>> 1);
+        bits = ((bits & 0x33333333) << 2) | ((bits & 0xCCCCCCCC) >>> 2);
+        bits = ((bits & 0x0F0F0F0F) << 4) | ((bits & 0xF0F0F0F0) >>> 4);
+        bits = ((bits & 0x00FF00FF) << 8) | ((bits & 0xFF00FF00) >>> 8);
+        //必须是uint的
+        tmpUint[0]=bits;
+        return tmpUint[0] * 2.3283064365386963e-10; // / 0x100000000
+    })(bits);
  }
-
 /**
  * 
  */
@@ -175,12 +178,39 @@ function createHammersleyTex(w:number, h:number):Float32Array{
     }
     return ret;
 }
-function setupScene(){
-    var noiseTex1 = new THREE.DataTexture(createHammersleyTex(32,32),32,32,THREE.RGBAFormat,THREE.FloatType,THREE.Texture.DEFAULT_MAPPING,
-    THREE.ClampToEdgeWrapping, THREE.ClampToEdgeWrapping,THREE.NearestFilter,THREE.NearestFilter);
-    noiseTex1.needsUpdate =true;
 
-    
+class PbrMtl extends THREE.RawShaderMaterial{
+    constructor(roughness:number){
+        var mtlparam:THREE.ShaderMaterialParameters={};
+        mtlparam.vertexShader= THREE.Cache.get('./vs1.glsl'); //glslloader.load('./vs1.glsl');//不能再调glslloader.load了，会再次触发完成事件
+        mtlparam.fragmentShader=THREE.Cache.get('./ps1.glsl');
+        mtlparam.uniforms={
+            tex1:{value:tex1},
+            texEnv:{value:texenv},
+            texBRDFLUT:{value:texBRDFLUT},
+            texNoise1:{value:noiseTex1},
+            u_fresnel0:{value:{x:1.0,y:1.0,z:1.0}},
+            u_roughness:{value:roughness},
+            u_lightDir:{value:{x:0,y:1,z:0}}
+        };
+        super(mtlparam);
+    }
+}
+
+class PbrSphere{
+    mtl:PbrMtl|THREE.Material;
+    constructor(roughness:number,scene:THREE.Scene,x:number,y:number,z:number,mtl?:THREE.Material){
+        var geometry = new THREE.SphereGeometry(1,60,60);//THREE.BoxGeometry(2,2,2,20,20,20);// 
+        //var material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
+        if(mtl)this.mtl=mtl;
+        else  this.mtl = new PbrMtl(roughness);
+        var sphere = new THREE.Mesh( geometry, this.mtl );
+        scene.add( sphere );
+        sphere.position.set(x,y,z);
+    }
+}
+
+function setupScene(){
     shadermtlparam.vertexShader= THREE.Cache.get('./vs1.glsl'); //glslloader.load('./vs1.glsl');//不能再调glslloader.load了，会再次触发完成事件
     shadermtlparam.fragmentShader=THREE.Cache.get('./ps1.glsl');
     shadermtlparam.uniforms={
@@ -193,24 +223,33 @@ function setupScene(){
         u_lightDir:{value:{x:0,y:1,z:0}}
     };
     var mtl2 = new THREE.RawShaderMaterial(shadermtlparam);
-    //mtl2.extensions = {a:0};
-    //scene obj
-    var geometry = new THREE.BoxGeometry(2,2,2,20,20,20);// THREE.SphereGeometry(1,60,60);//
-    //var material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
-    sphere = new THREE.Mesh( geometry, mtl2 );
-    scene.add( sphere );
+
+
+    
+    new PbrSphere(0.0,scene,-3,0,0);
+    new PbrSphere(0.2,scene,-1,0,0);
+    new PbrSphere(0.3,scene,1,0,0);
+    new PbrSphere(0.4,scene,3,0,0);
+    new PbrSphere(0.5,scene,5,0,0);
+    new PbrSphere(0.6,scene,7,0,0);
+    new PbrSphere(0.7,scene,9,0,0);
+    new PbrSphere(0.8,scene,11,0,0);
+    new PbrSphere(0.9,scene,13,0,0);
+    new PbrSphere(1.0,scene,15,0,0);
+    var testsph = new PbrSphere(.3,scene,0,0,3,mtl2);
 
     var objmodloader = new (THREE as any).OBJLoader();
     objmodloader.load('./assets/models/o.obj',function(o:THREE.Group){
         o.children.forEach((v:THREE.Mesh)=>{
             var tex1 = loader.load('./assets/models/'+v.name+ '_D.png',tex=>{});
             var mtl = new THREE.MeshBasicMaterial({map:tex1});
-            v.material = mtl2;
+            v.material = new PbrMtl(0.5);
+            //alert(v.material.uniforms);
             //v.scale.set(0.05,0.05,0.05);
-            v.position.set(1.5,0,0);
+            v.position.set(1.5,0,4);
             var b=v;
         });
-        //scene.add(o);
+        scene.add(o);
     });
 
     sceok=true;
@@ -231,9 +270,6 @@ var lightdir=[0,1,0];
 function  update(){
     //cube.rotation.x +=0.1;
     controls.update();
-    if(sphere){
-        //sphere.rotation.y +=0.01;
-    }
 }
 
 //render
