@@ -88,8 +88,8 @@ void texPanoramaLod(sampler2D tex, const in vec3 dir, out vec4 rgba, float lod){
     float v = asin(dir.y)/PI+0.5;
     #ifdef USEPRETEX
     v = 1.-v;
-    //rgba = textureLod(tex, vec2(u,v),lod);
-    rgba = texelFetch(tex,ivec2(int(2048.*u), int(1024.*v)),int(lod));
+    rgba = textureLod(tex, vec2(u,v),lod);
+    //rgba = texelFetch(tex,ivec2(int(2048.*u), int(1024.*v)),int(lod));
     #else
     rgba = textureLod(tex, vec2(u,v), lod);
     #endif

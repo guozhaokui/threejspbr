@@ -97,9 +97,11 @@ function loadEnv(env:string):THREE.Texture{
 
     var dt1 = null;// new Uint8Array(dd.buffer.slice(8));
     var texenv = new THREE.DataTexture(dt1,2048,1024,THREE.RGBAFormat,THREE.UnsignedByteType,THREE.Texture.DEFAULT_MAPPING,
-        THREE.ClampToEdgeWrapping, THREE.ClampToEdgeWrapping,THREE.NearestFilter,THREE.NearestFilter);
+        THREE.ClampToEdgeWrapping, THREE.ClampToEdgeWrapping,THREE.NearestFilter,THREE.LinearMipMapLinearFilter);
 
-    //var texenv = loader.load( p+'env_0.hdr.png',tex=>{});
+    //var texenv = loader.load( p+'env_0.hdr.png',tex=>{
+    //    tex.minFilter = THREE.LinearMipMapLinearFilter;
+    //});
     var mip0 = createImgDataFromRaw( fs.readFileSync( p+'env_0.hdr.raw')); 
     var mip1 = createImgDataFromRaw( fs.readFileSync( p+'env_1.hdr.raw'));
     var mip2 = createImgDataFromRaw( fs.readFileSync( p+'env_2.hdr.raw'));
@@ -111,21 +113,11 @@ function loadEnv(env:string):THREE.Texture{
     var mip8 = createImgDataFromRaw( fs.readFileSync( p+'env_8.hdr.raw'));
     var mip9 = createImgDataFromRaw( fs.readFileSync( p+'env_9.hdr.raw'));
     var mip10 = createImgDataFromRaw( fs.readFileSync( p+'env_10.hdr.raw'));
+    //TODO 如果不提供1x1的mipmap，就无法使用 LinearMipMapLinearFilter 。所以先凑一个，实际使用的时候，不要选择这个。
+    var mip11 = {width:1,height:1,data:new Uint8Array(mip10.data.buffer,0,4)};
+
     (texenv as any).mipmaps =[
-        /*
-        new ImageData(2048,1024),
-        new ImageData(1024,512),
-        new ImageData(512,256),
-        new ImageData(256,128),
-        new ImageData(128,64),
-        new ImageData(64,32),
-        new ImageData(32,16),
-        new ImageData(16,8),
-        new ImageData(8,4),
-        new ImageData(4,2),
-        new ImageData(2,1),
-        */
-        mip0,mip1,mip2,mip3,mip4,mip5,mip6,mip7,mip8,mip9,mip10
+        mip0,mip1,mip2,mip3,mip4,mip5,mip6,mip7,mip8,mip9,mip10,mip11
     ];
     texenv.needsUpdate=true;
     var mtlsky = new THREE.MeshBasicMaterial({
