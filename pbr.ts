@@ -79,7 +79,7 @@ function createImgDataFromRaw(Buff:Buffer){
     var h = Buff.readUInt32LE(4);
     //var dtbuf = Buff.buffer.slice(8);
     //var data = new ImageData(w,h);    threejs不能直接使用ImageData对象，因为它需要Uint8Array
-    var dt1 = new Uint8Array(Buff.buffer,8);
+    var dt1 = new Uint8Array( (new Uint8Array(Buff)).buffer,8);
     return {width:w,height:h,data:dt1};
     /*
     data.data.forEach((v,i,arr)=>{
@@ -87,6 +87,15 @@ function createImgDataFromRaw(Buff:Buffer){
     })
     return data;
     */
+}
+
+function createColorImg(w:number, h:number, col:number){
+    var num = w*h;
+    var dt = new Uint32Array(num);
+    for(var i=0; i<num; i++){
+        dt[i]=col;
+    }
+    return {width:w,height:h,data:new Uint8Array(dt.buffer)};
 }
 
 function loadEnv(env:string):THREE.Texture{
@@ -117,7 +126,10 @@ function loadEnv(env:string):THREE.Texture{
     var mip11 = {width:1,height:1,data:new Uint8Array(mip10.data.buffer,0,4)};
 
     (texenv as any).mipmaps =[
-        mip0,mip1,mip2,mip3,mip4,mip5,mip6,mip7,mip8,mip9,mip10,mip11
+        mip0,
+        mip1,mip2,mip3,mip4,mip5,mip6,mip7,mip8,mip9,
+        mip10,//createColorImg(2,1,0xff0000),
+        mip11
     ];
     texenv.needsUpdate=true;
     var mtlsky = new THREE.MeshBasicMaterial({

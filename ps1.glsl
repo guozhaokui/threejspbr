@@ -44,6 +44,11 @@ vec3 _RGBEToRGB( const in vec4 rgba ){
     return rgba.rgb * (255.0 * f);
 }
 
+float saturate(float v){
+    return min(max(v,0.),1.);
+}
+
+
 /*
  * 对一个全景图进行采样。假设x轴指向中心。
  */
@@ -219,10 +224,6 @@ vec3 PrefilterEnvMap( float Roughness , vec3 R ){
     return PrefilteredColor / TotalWeight;
 }
 
-float saturate(float v){
-    return min(max(v,0.),1.);
-}
-
 /*
     BRDF部分的积分的预处理。
     在排除F0以后，剩下的可以预计算了。
@@ -260,7 +261,7 @@ vec3 ApproximateSpecularIBL( vec3 SpecularColor , float Roughness , vec3 N, vec3
     vec3 R = 2. * dot( V, N ) * N - V;
   #ifdef USEPRETEX
     vec4 PrefilteredColor;
-    texPanoramaLod(texPreFilterdEnv, R, PrefilteredColor, floor(Roughness*8.0));
+    texPanoramaLod(texPreFilterdEnv, R, PrefilteredColor, floor(Roughness*10.0));
     PrefilteredColor.rgb = _RGBEToRGB(PrefilteredColor);
     vec4 EnvBRDF = texture(texBRDFLUT,vec2(Roughness , NoV));//TODO lod
     vec2 rg = _RGBAToU16(EnvBRDF);    
