@@ -1,0 +1,45 @@
+{
+    "model1":
+    {
+        "path":"models",
+        "name":"剑灵测试模型",
+        "src":"o.obj",
+        "MF000":{
+            "name":"身体",
+            "basecolor":"MF000_D.png",
+            "normal":"MF000_N.png",
+            "pbrinfo":"MF000_orm.png",
+            "shader":["uepbr.glsl"]
+        },
+        "MF000F":{
+            "name":"头",
+            "basecolor":"MF000F_D.png",
+            "normal":"MF000F_N.png",
+            "pbrinfo":"MF000F_orm.png"
+        },
+        "MF000H":{
+            "name":"头发",
+            "pbrinfo":"MF000H_D.png",
+            "normal":"MF000H_N.png",
+            "bprinfo":"MF000H_orm"
+        }
+    },
+
+    "scene":{
+        "envmap":{
+            "path":"imgs/env/AtticRoom/",
+            "prefilter":{
+                "prefix":"env_",
+                "num":10,
+                "suffix":".hdr.raw"
+            },
+            "map":"env.png"
+        },
+        "objs":[
+            {
+                "class":"model1",
+                "pos":[0,0,0]
+            }
+        ]
+    }
+}
