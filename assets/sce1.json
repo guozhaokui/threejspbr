@@ -9,7 +9,7 @@
             "basecolor":"MF000_D.png",
             "normal":"MF000_N.png",
             "pbrinfo":"MF000_orm.png",
-            "shader":["uepbr.glsl"]
+            "shader":"uepbr.glsl"
         },
         "MF000F":{
             "name":"头",

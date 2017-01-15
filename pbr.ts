@@ -1,3 +1,4 @@
+import { MapLoader } from './pbrmtl';
 /// <reference path="typings/index.d.ts" />
 
 
@@ -38,6 +39,9 @@ var loadermgr = new THREE.LoadingManager(
         console.log(url+','+loaded+','+total);
     }
 )
+
+var mloader = new MapLoader(scene);
+mloader.load('',scene);
 
 //texture
 var loader = new THREE.TextureLoader(loadermgr);
@@ -145,8 +149,8 @@ var texenv = loadEnv('AtticRoom');
 
 
 var glslloader = new THREE.XHRLoader(loadermgr);
-glslloader.load('./vs1.glsl');
-glslloader.load('./ps1.glsl');
+glslloader.load('./shaders/vs1.glsl');
+glslloader.load('./shaders/ps1.glsl');
 
 var shadermtlparam :THREE.ShaderMaterialParameters={};
 var sceok=false;
@@ -194,8 +198,8 @@ function createHammersleyTex(w:number, h:number):Float32Array{
 class PbrMtl extends THREE.RawShaderMaterial{
     constructor(roughness:number){
         var mtlparam:THREE.ShaderMaterialParameters={};
-        mtlparam.vertexShader= THREE.Cache.get('./vs1.glsl'); //glslloader.load('./vs1.glsl');//不能再调glslloader.load了，会再次触发完成事件
-        mtlparam.fragmentShader=THREE.Cache.get('./ps1.glsl');
+        mtlparam.vertexShader= THREE.Cache.get('./shaders/vs1.glsl'); //glslloader.load('./vs1.glsl');//不能再调glslloader.load了，会再次触发完成事件
+        mtlparam.fragmentShader=THREE.Cache.get('./shaders/ps1.glsl');
         mtlparam.uniforms={
             tex1:{value:tex1},
             texEnv:{value:texenv},
@@ -223,8 +227,8 @@ class PbrSphere{
 }
 
 function setupScene(){
-    shadermtlparam.vertexShader= THREE.Cache.get('./vs1.glsl'); //glslloader.load('./vs1.glsl');//不能再调glslloader.load了，会再次触发完成事件
-    shadermtlparam.fragmentShader=THREE.Cache.get('./ps1.glsl');
+    shadermtlparam.vertexShader= THREE.Cache.get('./shaders/vs1.glsl'); //glslloader.load('./vs1.glsl');//不能再调glslloader.load了，会再次触发完成事件
+    shadermtlparam.fragmentShader=THREE.Cache.get('./shaders/ps1.glsl');
     shadermtlparam.uniforms={
         tex1:{value:tex1},
         texEnv:{value:texenv},
