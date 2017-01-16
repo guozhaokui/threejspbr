@@ -36,7 +36,6 @@ float saturate(float v){
     return min(max(v,0.),1.);
 }
 
-
 /*
  * 对一个全景图进行采样。假设x轴指向中心。
  */
@@ -56,9 +55,7 @@ void texPanoramaLod(sampler2D tex, const in vec3 dir, out vec4 rgba, float lod){
     //rgba = texelFetch(tex,ivec2(int(2048.*u), int(1024.*v)),int(lod));
 }
 
-vec3 ApproximateSpecularIBL( vec3 SpecularColor , float Roughness , vec3 N, vec3 V ){
-    float NoV = saturate( dot( N, V ) );
-    vec3 R = 2. * dot( V, N ) * N - V;
+vec3 ApproximateSpecularIBL( vec3 SpecularColor , float Roughness , float NoV, vec3 R){
     vec4 PrefilteredColor;
     texPanoramaLod(texPreFilterdEnv, R, PrefilteredColor, floor(Roughness*10.0));
     PrefilteredColor.rgb = _RGBEToRGB(PrefilteredColor);
@@ -67,14 +64,23 @@ vec3 ApproximateSpecularIBL( vec3 SpecularColor , float Roughness , vec3 N, vec3
     return PrefilteredColor.rgb * SpecularColor* rg.x + saturate( 50.0 * PrefilteredColor.g ) * rg.y;
 }
 
+vec3 testDiff(vec3 R ){
+    vec4 PrefilteredColor;
+    texPanoramaLod(texPreFilterdEnv, R, PrefilteredColor, 9.);
+    PrefilteredColor.rgb = _RGBEToRGB(PrefilteredColor);
+    return PrefilteredColor.rgb;
+}
+
 void main() {
     vec3 normal =  normalize(vWorldNorm);
     vec3 view   = -normalize(vViewDir);
-    vec3 color_spec = ApproximateSpecularIBL(u_fresnel0,u_roughness,normal, view);
-    vec3 color_diff= NdotL_clamped * (1.0-u_fresnel0.x) * u_diffuseColor * u_lightColor;
-
-    vec4 brdflutc = texture(texBRDFLUT, vUv);
-    vec2 rg = _RGBAToU16(brdflutc);
-    fragColor.rgb = color_spec;//+color_diff;// (refcol.xyz);// basecolor;
+    vec4 pbrinfo = texture(texORM,vUv);
+    vec4 basecolor = texture(texBaseColor,vUv);
+    float NoV = saturate(dot( view, normal ));
+    vec3 R = 2. * NoV * normal - view;
+    
+    vec3 color_spec = ApproximateSpecularIBL(basecolor.rgb,pbrinfo.g, NoV, R);
+    vec3 color_diff= testDiff(normal)*basecolor.rgb;
+    fragColor.rgb =color_spec +((1.0-pbrinfo.b)*color_diff) ;//+color_diff;// (refcol.xyz);// basecolor;
     fragColor.a = 1.0;
 }

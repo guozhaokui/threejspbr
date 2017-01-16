@@ -136,13 +136,6 @@ function loadEnv(env:string):THREE.Texture{
         mip11
     ];
     texenv.needsUpdate=true;
-    var mtlsky = new THREE.MeshBasicMaterial({
-        side:THREE.DoubleSide,
-        color:0xffffffff,
-        map:loader.load(p+'env.png',tex=>{})
-    });
-    var skysphere = new THREE.Mesh( new THREE.SphereGeometry(100,40,40),mtlsky);
-    scene.add(skysphere);
     return texenv;
 }
 var texenv = loadEnv('AtticRoom');
@@ -255,9 +248,9 @@ function setupScene(){
     var testsph = new PbrSphere(.3,scene,0,0,3,mtl2);
 
     var objmodloader = new (THREE as any).OBJLoader();
-    objmodloader.load('./assets/models/o.obj',function(o:THREE.Group){
+    objmodloader.load('./assets/models/jianling/o.obj',function(o:THREE.Group){
         o.children.forEach((v:THREE.Mesh)=>{
-            var tex1 = loader.load('./assets/models/'+v.name+ '_D.png',tex=>{});
+            var tex1 = loader.load('./assets/models/jianling/'+v.name+ '_D.png',tex=>{});
             var mtl = new THREE.MeshBasicMaterial({map:tex1});
             v.material = new PbrMtl(0.5);
             //alert(v.material.uniforms);
