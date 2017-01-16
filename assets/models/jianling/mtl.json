@@ -1,0 +1,18 @@
+{
+    "MF000":{
+        "name":"身体",
+        "diff":"MF000_D.png",
+        "normal":"MF000_N.png",
+        "roughness":""
+    },
+    "MF000F":{
+        "name":"头",
+        "diff":"MF000F_D.png",
+        "normal":"MF000F_N.png"
+    },
+    "MF000H":{
+        "name":"头发",
+        "diff":"MF000H_D.png",
+        "normal":"MF000H_N.png"
+    }
+}

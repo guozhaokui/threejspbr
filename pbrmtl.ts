@@ -72,6 +72,7 @@ export class MapLoader{
     scene:THREE.Scene;
     texenv:THREE.Texture;
     pbrlut:THREE.Texture;
+    sceobj:any;
     loaded=false;//TODO texture不能用cache，所以只能load，load会导致再次调用onload，所以
     constructor(sce:THREE.Scene){
         this.scene = sce;
@@ -104,56 +105,51 @@ export class MapLoader{
     }
 
     load(src:string,sce:THREE.Scene){
-        /*
-        var fs = require('fs');
-        var jsonstr = fs.readFileSync(src,'utf8');
-        if(jsonstr){
-            var jsobj = JSON.parse(jsonstr);
-            if(jsobj){
-                //this.allfiles = this.getAllFiles(jsobj);
+        this.txtxhrloader.load(src,(responseText)=>{
+            this.sceobj = JSON.parse(responseText);
+            if(!this.sceobj){
+                alert('error1');
+            }else{
+                this.allfiles[0]=['./assets/imgs/pbrlut.raw',
+                './assets/imgs/env/AtticRoom/env_0.hdr.raw',
+                './assets/imgs/env/AtticRoom/env_1.hdr.raw',
+                './assets/imgs/env/AtticRoom/env_2.hdr.raw',
+                './assets/imgs/env/AtticRoom/env_3.hdr.raw',
+                './assets/imgs/env/AtticRoom/env_4.hdr.raw',
+                './assets/imgs/env/AtticRoom/env_5.hdr.raw',
+                './assets/imgs/env/AtticRoom/env_6.hdr.raw',
+                './assets/imgs/env/AtticRoom/env_7.hdr.raw',
+                './assets/imgs/env/AtticRoom/env_8.hdr.raw',
+                './assets/imgs/env/AtticRoom/env_9.hdr.raw',
+                './assets/imgs/env/AtticRoom/env_10.hdr.raw'
+                ];
+                this.allfiles[1]=['./shaders/vs1.glsl', './shaders/uepbr.glsl'];
+                this.allfiles[2]=['./assets/imgs/env/AtticRoom/env.png',
+                './assets/models/jianling/MF000_D.png', 
+                './assets/models/jianling/MF000_N.png',   
+                './assets/models/jianling/MF000_orm.png',  
+                './assets/models/jianling/MF000F_D.png', 
+                './assets/models/jianling/MF000F_N.png',  
+                './assets/models/jianling/MF000F_orm.png',  
+                './assets/models/jianling/MF000H_D.png',  
+                './assets/models/jianling/MF000H_N.png',  
+                './assets/models/jianling/MF000H_orm.png',
+                './assets/models/sphere/basecolor.png',
+                './assets/models/sphere/normal.png',
+                './assets/models/sphere/orm.png'
+                ];
+                this.allfiles[3]=['./assets/models/jianling/o.obj',
+                './assets/models/sphere/sphere.obj'
+                ];
+
+                var loader=[this.binxhrloader,this.txtxhrloader,this.texloader,this.modloader_obj];
+                this.allfiles.forEach((all,loaderidx)=>{
+                    all.forEach((f,fidx)=>{
+                        (loader[loaderidx] as threejsloader).load(f);
+                    })
+                })
             }
-
-        }
-        */
-        //TEMP
-        this.allfiles[0]=['./assets/imgs/pbrlut.raw',
-        './assets/imgs/env/AtticRoom/env_0.hdr.raw',
-        './assets/imgs/env/AtticRoom/env_1.hdr.raw',
-        './assets/imgs/env/AtticRoom/env_2.hdr.raw',
-        './assets/imgs/env/AtticRoom/env_3.hdr.raw',
-        './assets/imgs/env/AtticRoom/env_4.hdr.raw',
-        './assets/imgs/env/AtticRoom/env_5.hdr.raw',
-        './assets/imgs/env/AtticRoom/env_6.hdr.raw',
-        './assets/imgs/env/AtticRoom/env_7.hdr.raw',
-        './assets/imgs/env/AtticRoom/env_8.hdr.raw',
-        './assets/imgs/env/AtticRoom/env_9.hdr.raw',
-        './assets/imgs/env/AtticRoom/env_10.hdr.raw'
-        ];
-        this.allfiles[1]=['./shaders/vs1.glsl', './shaders/uepbr.glsl'];
-        this.allfiles[2]=['./assets/imgs/env/AtticRoom/env.png',
-        './assets/models/jianling/MF000_D.png', 
-        './assets/models/jianling/MF000_N.png',   
-        './assets/models/jianling/MF000_orm.png',  
-        './assets/models/jianling/MF000F_D.png', 
-        './assets/models/jianling/MF000F_N.png',  
-        './assets/models/jianling/MF000F_orm.png',  
-        './assets/models/jianling/MF000H_D.png',  
-        './assets/models/jianling/MF000H_N.png',  
-        './assets/models/jianling/MF000H_orm.png',
-        './assets/models/sphere/basecolor.png',
-        './assets/models/sphere/normal.png',
-        './assets/models/sphere/orm.png'
-        ];
-        this.allfiles[3]=['./assets/models/jianling/o.obj',
-        './assets/models/sphere/sphere.obj'
-        ];
-
-        var loader=[this.binxhrloader,this.txtxhrloader,this.texloader,this.modloader_obj];
-        this.allfiles.forEach((all,loaderidx)=>{
-            all.forEach((f,fidx)=>{
-                (loader[loaderidx] as threejsloader).load(f);
-            })
-        })
+        });        
     }
 
     getAllFiles(obj:Object):string[]{
@@ -170,6 +166,8 @@ export class MapLoader{
     loadScene(){
         this.loadLUT();
         this.loadEnv('AtticRoom');
+
+        //测试球
         var geometry = new THREE.SphereGeometry(1,60,60);//THREE.BoxGeometry(2,2,2,20,20,20);// 
         var pbrmtl = new UEPbrMtl(
             this.texloader.load('./assets/models/sphere/basecolor.png'),
@@ -181,6 +179,25 @@ export class MapLoader{
         var sphere = new THREE.Mesh( geometry, pbrmtl.mtl );
         this.scene.add( sphere );
         sphere.position.set(0,2,2);        
+
+        //测试模型
+        var objmtl = this.sceobj.model1;
+        this.modloader_obj.load('./assets/models/jianling/o.obj',(o:THREE.Group)=>{
+            o.children.forEach((v:THREE.Mesh)=>{
+                var texpath = objmtl.path+'/';
+                var groupmtl = objmtl[v.name];
+                if(groupmtl){
+                    var texbc=this.texloader.load(texpath+ groupmtl.basecolor );
+                    var texnorm = this.texloader.load(texpath+groupmtl.normal);
+                    var texpbr = this.texloader.load(texpath+groupmtl.pbrinfo);
+                    var mtl = new UEPbrMtl(texbc,texnorm,texpbr,this.texenv,this.pbrlut);
+                    v.material = mtl.mtl;
+                    //v.position.set(-1.5,0,4);
+                    v.position.set(0,0,0);
+                }
+            });
+            this.scene.add(o);
+        });
     }
 
     getNode(name:string){

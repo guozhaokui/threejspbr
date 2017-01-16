@@ -79,8 +79,8 @@ void main() {
     float NoV = saturate(dot( view, normal ));
     vec3 R = 2. * NoV * normal - view;
     
-    vec3 color_spec = ApproximateSpecularIBL(basecolor.rgb,pbrinfo.g, NoV, R);
+    vec3 color_spec = ApproximateSpecularIBL(basecolor.rgb*pbrinfo.b,pbrinfo.g, NoV, R);
     vec3 color_diff= testDiff(normal)*basecolor.rgb;
-    fragColor.rgb =color_spec +((1.0-pbrinfo.b)*color_diff) ;//+color_diff;// (refcol.xyz);// basecolor;
+    fragColor.rgb = color_spec +((1.0-pbrinfo.b)*color_diff) ;//+color_diff;// (refcol.xyz);// basecolor;
     fragColor.a = 1.0;
 }

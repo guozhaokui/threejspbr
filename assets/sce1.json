@@ -1,11 +1,18 @@
 {
     "model1":
     {
-        "path":"models",
+        "path":"assets/models/jianling",
         "name":"剑灵测试模型",
         "src":"o.obj",
         "MF000":{
             "name":"身体",
+            "basecolor":"MF000_D.png",
+            "normal":"MF000_N.png",
+            "pbrinfo":"MF000_orm.png",
+            "shader":"uepbr.glsl"
+        },
+        "MF000_2":{
+            "name":"衣服",
             "basecolor":"MF000_D.png",
             "normal":"MF000_N.png",
             "pbrinfo":"MF000_orm.png",
