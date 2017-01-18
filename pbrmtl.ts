@@ -234,7 +234,7 @@ export class MapLoader{
         var p = './assets/imgs/env/'+env+'/';
         var dt1 = null;// new Uint8Array(dd.buffer.slice(8));
         this.texenv = new THREE.DataTexture(dt1,2048,1024,THREE.RGBAFormat,THREE.UnsignedByteType,THREE.Texture.DEFAULT_MAPPING,
-            THREE.ClampToEdgeWrapping, THREE.ClampToEdgeWrapping,THREE.LinearFilter,THREE.LinearMipMapLinearFilter);
+            THREE.RepeatWrapping, THREE.ClampToEdgeWrapping,THREE.LinearFilter,THREE.LinearMipMapLinearFilter);
 
         var mip0 = this.createImgDataFromRaw( THREE.Cache.get(p+'env_0.hdr.raw') as ArrayBuffer); 
         var mip1 = this.createImgDataFromRaw( THREE.Cache.get( p+'env_1.hdr.raw') as ArrayBuffer);

@@ -110,7 +110,7 @@ function loadEnv(env:string):THREE.Texture{
 
     var dt1 = null;// new Uint8Array(dd.buffer.slice(8));
     var texenv = new THREE.DataTexture(dt1,2048,1024,THREE.RGBAFormat,THREE.UnsignedByteType,THREE.Texture.DEFAULT_MAPPING,
-        THREE.ClampToEdgeWrapping, THREE.ClampToEdgeWrapping,THREE.LinearFilter,THREE.LinearMipMapLinearFilter);
+        THREE.RepeatWrapping, THREE.ClampToEdgeWrapping,THREE.LinearFilter,THREE.LinearMipMapLinearFilter);
 
     //var texenv = loader.load( p+'env_0.hdr.png',tex=>{
     //    tex.minFilter = THREE.LinearMipMapLinearFilter;
@@ -234,7 +234,7 @@ function setupScene(){
     var mtl2 = new THREE.RawShaderMaterial(shadermtlparam);
 
 
-    
+    /*
     new PbrSphere(0.0,scene,-3,0,0);
     new PbrSphere(0.2,scene,-1,0,0);
     new PbrSphere(0.3,scene,1,0,0);
@@ -245,6 +245,7 @@ function setupScene(){
     new PbrSphere(0.8,scene,11,0,0);
     new PbrSphere(0.9,scene,13,0,0);
     new PbrSphere(1.0,scene,15,0,0);
+    */
     var testsph = new PbrSphere(.3,scene,0,0,3,mtl2);
 
     var objmodloader = new (THREE as any).OBJLoader();
