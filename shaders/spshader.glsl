@@ -200,9 +200,11 @@ vec4 pbrComputeBRDF(V2F inputs, vec3 diffColor, vec3 specColor, float glossiness
     float ndl = dot(normal_vec, Ln);
 
     // Horizon fading trick from http://marmosetco.tumblr.com/post/81245981087
+    // 解决反射错误的一个小技巧：法向量反射的时候，会忽略遮挡（光线穿过物体）导致错误的效果（如果反射的是高光就很明显）
     const float horizonFade = 1.3;
-    float horiz = clamp( 1.0 + horizonFade * ndl, 0.0, 1.0 );
-    horiz *= horiz;
+    float horiz = clamp( 1.0 + horizonFade * ndl, 0.0, 1.0 ); //如果ndl<0表示反射线在表面下面了，需要算遮挡，削弱反射值。
+                                                              //只能是法线图和原始法线的比较，不能解决大范围的遮挡问题
+    horiz *= horiz; //柔和一下
 
     ndl = max( 1e-8, abs(ndl) );
     float vdh = max(1e-8, dot(eye_vec, Hn));

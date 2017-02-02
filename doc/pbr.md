@@ -57,3 +57,34 @@ http://blog.selfshadow.com/publications/s2012-shading-course/mcauley/s2012_pbs_f
 
 ## Gauss-Jordan elimination
 可以用来解方程，具体原理和实现可以参考 https://zh.wikipedia.org/wiki/高斯消去法
+
+## 球谐函数
+http://www.cnblogs.com/lianera/p/6137511.html
+    如果环境光照能用函数表示，计算积分就会非常方便
+    球谐基函数： Yl,i
+    0阶 1个   Y0,0
+    1阶 3个  Y1,-1,Y1,0,Y1,1
+    2阶 5个  Y2,-2,Y2,-1,Y2,0,Y2,1,Y2,2
+    4阶 7个
+    球谐基函数已知，只要知道每个Yi对应的强度系数Ci就能直接使用了
+
+http://blog.csdn.net/bugrunner/article/details/6994379
+    有4Pi/N的原因（蒙特卡洛积分）    
+![](./imgs/sh_1.png)
+w(xi)= 1/p(xi) = 4PI
+
+好处：
+    节省一张贴图。可能比采样要快
+http://www.ppsloan.org/publications/StupidSH36.pdf
+
+http://www.paulsprojects.net/opengl/sh/sh.html
+    带源码
+
+傅立叶变换是用两个正交的函数（sin，cos）描述复数空间的圆上的函数
+sh是用来描述球面上的函数.
+l越大对应的频率越高
+
+n阶的话就有n*n个系数： 1 , 1+3, 1+3+5, 1+3+5+7
+
+## diff和spec所占比重
+并不保证和为1
