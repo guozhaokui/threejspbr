@@ -12,9 +12,51 @@ struct V2F {
 import lib-sampler.glsl
 // import lib-pbr.glsl
 
-import lib-env.glsl
 import lib-normal.glsl
 import lib-random.glsl
+// import lib-env.glsl
+// lib-env start
+import lib-defines.glsl
+
+//: param auto texture_environment
+uniform sampler2D environment_texture;
+//: param auto environment_rotation
+uniform float environment_rotation;
+//: param auto environment_exposure
+uniform float environment_exposure;
+//: param auto environment_irrad_mat_red
+uniform mat4 irrad_mat_red;
+//: param auto environment_irrad_mat_green
+uniform mat4 irrad_mat_green;
+//: param auto environment_irrad_mat_blue
+uniform mat4 irrad_mat_blue;
+
+vec3 envSampleLOD(vec3 dir, float lod){
+  vec2 pos = M_INV_PI * vec2(atan(-dir.z, -dir.x), 2.0 * asin(dir.y));
+  pos = 0.5 * pos + vec2(0.5);
+  pos.x += environment_rotation;
+  return texture2DLod(environment_texture, pos, lod).rgb * environment_exposure;
+}
+
+//根据球谐函数计算的辐照度
+vec3 envIrradiance(vec3 dir){
+  float rot = environment_rotation * M_2PI;
+  float crot = cos(rot);
+  float srot = sin(rot);
+  vec4 shDir = vec4(dir.xzy, 1.0);
+  shDir = vec4(
+	shDir.x * crot - shDir.y * srot,
+	shDir.x * srot + shDir.y * crot,
+	shDir.z,
+	1.0);
+  return max(vec3(0.0), vec3(
+	dot(shDir, irrad_mat_red * shDir),
+	dot(shDir, irrad_mat_green * shDir),
+	dot(shDir, irrad_mat_blue * shDir)
+	)) * environment_exposure;
+}
+
+// lib-env end
 
 //: param auto channel_emissive
 uniform sampler2D emissive_tex;
@@ -99,13 +141,7 @@ float visibility(
   return G1(ndl,k)*G1(ndv,k);
 }
 
-vec3 cook_torrance_contrib(
-  float vdh,
-  float ndh,
-  float ndl,
-  float ndv,
-  vec3 Ks,
-  float Roughness){
+vec3 cook_torrance_contrib( float vdh,  float ndh,  float ndl,  float ndv,  vec3 Ks,  float Roughness){
   // This is the contribution when using importance sampling with the GGX based
   // sample distribution. This means ct_contrib = ct_brdf / ggx_probability
   return fresnel(vdh,Ks) * (visibility(ndl,ndv,Roughness) * vdh * ndl / ndh );
@@ -136,6 +172,7 @@ float computeLOD(vec3 Ln, float p){
 }
 
 vec4 pbrComputeBRDF(V2F inputs, vec3 diffColor, vec3 specColor, float glossiness, float occlusion){
+  //world space normal
   vec3 normal_vec = computeWSNormal(inputs.tex_coord, inputs.tangent, inputs.bitangent, inputs.normal);
   if (isBackFace()) {
     normal_vec = -normal_vec;
@@ -143,6 +180,7 @@ vec4 pbrComputeBRDF(V2F inputs, vec3 diffColor, vec3 specColor, float glossiness
 
   vec3 eye_vec = is_perspective ?normalize(camera_pos - inputs.position) : -camera_dir;
   float ndv = dot(eye_vec, normal_vec);
+  //Trick to remove black artefacts Backface ? place the eye at the opposite - removes black zones
   if (ndv < 0) {
     eye_vec = reflect(eye_vec, normal_vec);
     ndv = abs(ndv);
