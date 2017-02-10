@@ -68,10 +68,10 @@ http://www.cnblogs.com/lianera/p/6137511.html
     4阶 7个
     球谐基函数已知，只要知道每个Yi对应的强度系数Ci就能直接使用了
 
-http://blog.csdn.net/bugrunner/article/details/6994379
+http://blog.csdn.net/bugrunner/article/details/6994379  
     有4Pi/N的原因（蒙特卡洛积分）    
-![](./imgs/sh_1.png)
-w(xi)= 1/p(xi) = 4PI
+![](./imgs/sh_1.png)  
+w(xi)= 1/p(xi) = 4PI。 p(xi)是概率密度函数
 
 好处：
     节省一张贴图。可能比采样要快

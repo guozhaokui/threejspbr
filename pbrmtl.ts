@@ -13,7 +13,8 @@ export class UEPbrMtl {
     normalFile:string;
     ao_rough_metalFile:string;
     mtlparam:THREE.ShaderMaterialParameters={};
-    constructor(texbasecolor:THREE.Texture, texnormal:THREE.Texture, texpbrinfo:THREE.Texture,preenv:THREE.Texture,pbrlut:THREE.Texture){
+    constructor(texbasecolor:THREE.Texture, texnormal:THREE.Texture, texpbrinfo:THREE.Texture,preenv:THREE.Texture,
+        prediff:THREE.Texture, pbrlut:THREE.Texture){
         this.mtlparam.vertexShader= THREE.Cache.get('./shaders/vs1.glsl'); //glslloader.load('./vs1.glsl');//不能再调glslloader.load了，会再次触发完成事件
         this.mtlparam.fragmentShader=THREE.Cache.get('./shaders/uepbr.glsl');
         this.mtlparam.uniforms={
@@ -21,6 +22,7 @@ export class UEPbrMtl {
             texNormal:{value:texnormal},
             texORM:{value:texpbrinfo},
             texPreFilterdEnv:{value:preenv},
+            texPrefilterDiff:{value:prediff},
             texBRDFLUT:{value:pbrlut}
         };
         this.mtl = new THREE.RawShaderMaterial(this.mtlparam);
@@ -71,6 +73,7 @@ export class MapLoader{
     allfiles:string[][]=[];
     scene:THREE.Scene;
     texenv:THREE.Texture;
+    texenvdiff:THREE.Texture;   //临时。以后用SH
     pbrlut:THREE.Texture;
     sceobj:any;
     loaded=false;//TODO texture不能用cache，所以只能load，load会导致再次调用onload，所以
@@ -125,6 +128,7 @@ export class MapLoader{
                 ];
                 this.allfiles[1]=['./shaders/vs1.glsl', './shaders/uepbr.glsl'];
                 this.allfiles[2]=['./assets/imgs/env/AtticRoom/env.png',
+                './assets/imgs/env/AtticRoom/envdiff.png',
                 './assets/models/jianling/MF000_D.png', 
                 './assets/models/jianling/MF000_N.png',   
                 './assets/models/jianling/MF000_orm.png',  
@@ -167,6 +171,9 @@ export class MapLoader{
         this.loadLUT();
         this.loadEnv('AtticRoom');
 
+        this.texenvdiff = this.texloader.load('./assets/imgs/env/AtticRoom/envdiff.png');
+        this.texenvdiff.wrapT = THREE.ClampToEdgeWrapping;
+        this.texenvdiff.wrapS = THREE.RepeatWrapping;
         //测试球
         var geometry = new THREE.SphereGeometry(1,60,60);//THREE.BoxGeometry(2,2,2,20,20,20);// 
         var pbrmtl = new UEPbrMtl(
@@ -174,6 +181,7 @@ export class MapLoader{
             this.texloader.load('./assets/models/sphere/normal.png'),
             this.texloader.load('./assets/models/sphere/orm.png'),
             this.texenv,
+            this.texenvdiff,
             this.pbrlut,
             );
         var sphere = new THREE.Mesh( geometry, pbrmtl.mtl );
@@ -190,7 +198,7 @@ export class MapLoader{
                     var texbc=this.texloader.load(texpath+ groupmtl.basecolor );
                     var texnorm = this.texloader.load(texpath+groupmtl.normal);
                     var texpbr = this.texloader.load(texpath+groupmtl.pbrinfo);
-                    var mtl = new UEPbrMtl(texbc,texnorm,texpbr,this.texenv,this.pbrlut);
+                    var mtl = new UEPbrMtl(texbc,texnorm,texpbr,this.texenv,this.texenvdiff, this.pbrlut);
                     v.material = mtl.mtl;
                     //v.position.set(-1.5,0,4);
                     v.position.set(0,0,0);
