@@ -274,7 +274,8 @@ var effectController  = {
     f0r:1.0,
     f0g:1.0,
     f0b:1.0,
-    roughness:0.5
+    roughness:0.5,
+    refresh:0.0,
 };
 var lightdir=[0,1,0];
 function  update(){
@@ -306,8 +307,13 @@ function onUniformChange(){
         shadermtlparam.uniforms.u_fresnel0.value.z = effectController.f0b;
     }
 }
+
+function refreshshader(){
+    mloader.refreshshader();
+}
 var gui = new (window as any).dat.GUI();
 gui.add(effectController,'f0r',0,1,0.01).onChange(onUniformChange);
 gui.add(effectController,'f0g',0,1,0.01).onChange(onUniformChange);
 gui.add(effectController,'f0b',0,1,0.01).onChange(onUniformChange);
 gui.add(effectController,'roughness',0,1,0.01).onChange(onUniformChange);
+gui.add(effectController,'refresh',0,1,0.01).onChange(refreshshader);

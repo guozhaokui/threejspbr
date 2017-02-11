@@ -68,6 +68,7 @@ export class MapLoader{
     txtxhrloader:THREE.XHRLoader;
     texloader:THREE.TextureLoader;
     modloader_obj;
+    allmtls:THREE.Material[]=[];
 
     allfiles:string[][]=[];
     scene:THREE.Scene;
@@ -106,34 +107,39 @@ export class MapLoader{
                 if(!this.sceobj){
                     alert('error1');
                 }else{
-                    this.allfiles[0]=['./assets/imgs/pbrlut.raw',
-                    './assets/imgs/env/AtticRoom/env_0.hdr.raw',
-                    './assets/imgs/env/AtticRoom/env_1.hdr.raw',
-                    './assets/imgs/env/AtticRoom/env_2.hdr.raw',
-                    './assets/imgs/env/AtticRoom/env_3.hdr.raw',
-                    './assets/imgs/env/AtticRoom/env_4.hdr.raw',
-                    './assets/imgs/env/AtticRoom/env_5.hdr.raw',
-                    './assets/imgs/env/AtticRoom/env_6.hdr.raw',
-                    './assets/imgs/env/AtticRoom/env_7.hdr.raw',
-                    './assets/imgs/env/AtticRoom/env_8.hdr.raw',
-                    './assets/imgs/env/AtticRoom/env_9.hdr.raw',
-                    './assets/imgs/env/AtticRoom/env_10.hdr.raw'
+                    this.getAllFiles();
+                    var path = './assets/imgs/env/';
+                    var env = 'overcloud';
+                    this.allfiles[0]=[
+                        './assets/imgs/pbrlut.raw',
+                        path+env+'/env_0.hdr.raw',
+                        path+env+'/env_1.hdr.raw',
+                        path+env+'/env_2.hdr.raw',
+                        path+env+'/env_3.hdr.raw',
+                        path+env+'/env_4.hdr.raw',
+                        path+env+'/env_5.hdr.raw',
+                        path+env+'/env_6.hdr.raw',
+                        path+env+'/env_7.hdr.raw',
+                        path+env+'/env_8.hdr.raw',
+                        path+env+'/env_9.hdr.raw',
+                        path+env+'/env_10.hdr.raw'
                     ];
                     this.allfiles[1]=['./shaders/vs1.glsl', './shaders/uepbr.glsl'];
-                    this.allfiles[2]=['./assets/imgs/env/AtticRoom/env.png',
-                    './assets/imgs/env/AtticRoom/envdiff.png',
-                    './assets/models/jianling/MF000_D.png', 
-                    './assets/models/jianling/MF000_N.png',   
-                    './assets/models/jianling/MF000_orm.png',  
-                    './assets/models/jianling/MF000F_D.png', 
-                    './assets/models/jianling/MF000F_N.png',  
-                    './assets/models/jianling/MF000F_orm.png',  
-                    './assets/models/jianling/MF000H_D.png',  
-                    './assets/models/jianling/MF000H_N.png',  
-                    './assets/models/jianling/MF000H_orm.png',
-                    './assets/models/sphere/basecolor.png',
-                    './assets/models/sphere/normal.png',
-                    './assets/models/sphere/orm.png'
+                    this.allfiles[2]=[
+                        path+env+'/env.png',
+                        path+env+'/envdiff.png',
+                        './assets/models/jianling/MF000_D.png', 
+                        './assets/models/jianling/MF000_N.png',   
+                        './assets/models/jianling/MF000_orm.png',  
+                        './assets/models/jianling/MF000F_D.png', 
+                        './assets/models/jianling/MF000F_N.png',  
+                        './assets/models/jianling/MF000F_orm.png',  
+                        './assets/models/jianling/MF000H_D.png',  
+                        './assets/models/jianling/MF000H_N.png',  
+                        './assets/models/jianling/MF000H_orm.png',
+                        './assets/models/sphere/basecolor.png',
+                        './assets/models/sphere/normal.png',
+                        './assets/models/sphere/orm.png'
                     ];
                     this.allfiles[3]=['./assets/models/jianling/o.obj',
                     './assets/models/sphere/sphere.obj'
@@ -150,7 +156,42 @@ export class MapLoader{
         });
     }
 
-    getAllFiles(obj:Object):string[]{
+    getAllModelResFile(moddesc:any){
+        var p = moddesc.path;
+        for( var n in moddesc){
+            if(moddesc[n].basecolor){
+
+            }
+            if(moddesc[n].normal){
+
+            }
+            if(moddesc[n].pbrinfo){
+
+            }
+        }
+    }
+
+    getAllSceneFile(){
+        if(this.sceobj.envmap){
+            var env = this.sceobj.envmap;
+            var p = env.path;
+            env.prefilter;
+            env.diffpre;
+            env.map;
+        }
+
+        if(this.sceobj.objs){
+            this.sceobj.objs.forEach((v,i,a)=>{
+                if(v.class){
+                    this.getAllModelResFile(v.class);
+                }
+            });
+        }
+    }
+
+    getAllFiles():string[]{
+        this.sceobj;
+        this.resdefobj;
         return null;
     }
 
@@ -163,8 +204,8 @@ export class MapLoader{
 
     loadScene(){
         this.loadLUT();
-        this.loadEnv('AtticRoom');
-        //this.loadEnv('overcloud');
+        //this.loadEnv('AtticRoom');
+        this.loadEnv('overcloud');
 
         //测试球
         var geometry = new THREE.SphereGeometry(1,60,60);//THREE.BoxGeometry(2,2,2,20,20,20);// 
@@ -176,6 +217,7 @@ export class MapLoader{
             this.texenvdiff,
             this.pbrlut,
             );
+        this.allmtls.push(pbrmtl.mtl);
         var sphere = new THREE.Mesh( geometry, pbrmtl.mtl );
         this.scene.add( sphere );
         sphere.position.set(0,2,2);        
@@ -191,6 +233,7 @@ export class MapLoader{
                     var texnorm = this.texloader.load(texpath+groupmtl.normal);
                     var texpbr = this.texloader.load(texpath+groupmtl.pbrinfo);
                     var mtl = new UEPbrMtl(texbc,texnorm,texpbr,this.texenv,this.texenvdiff, this.pbrlut);
+                    this.allmtls.push(mtl.mtl);
                     v.material = mtl.mtl;
                     //v.position.set(-1.5,0,4);
                     v.position.set(0,0,0);
@@ -269,7 +312,16 @@ export class MapLoader{
         var skysphere = new THREE.Mesh( new THREE.SphereGeometry(100,40,40),mtlsky);
         this.scene.add(skysphere);
     }
-    
+
+    refreshshader(){
+        this.allmtls.forEach((v:any)=>{
+            if((window as any).require){
+                var fs = require('fs');
+                v.fragmentShader= fs.readFileSync( 'F:/work/pbr/threejspbr/shaders/'+'uepbr.glsl','utf8');
+            }            
+            v.needsUpdate=true;
+        });
+    }   
 }
 
 //var sce = new Sceloader();
