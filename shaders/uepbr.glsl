@@ -24,6 +24,8 @@ vec3 u_diffuseColor = vec3(0.1,0.1,0.1);
 
 out vec4 fragColor;
 
+vec3 speccontrib = vec3(0.);
+
 const float _maxu8 = 255.0;
 const float _maxu16 = 65535.0;
 const float _shift8 = 256.0;    //平移的话是*256而不是255
@@ -80,11 +82,13 @@ void texPanoramaLod(sampler2D tex, const in vec3 dir, out vec4 rgba, float lod){
 
 vec3 ApproximateSpecularIBL( vec3 SpecularColor , float Roughness , float NoV, vec3 R){
     vec4 PrefilteredColor;
-    texPanoramaLod(texPreFilterdEnv, R, PrefilteredColor, Roughness*11.0);
+    texPanoramaLod(texPreFilterdEnv, R, PrefilteredColor, Roughness*14.0);
     PrefilteredColor.rgb = _RGBEToRGB(PrefilteredColor);
     vec4 EnvBRDF = texture(texBRDFLUT,vec2(Roughness , NoV));//TODO lod
     vec2 rg = _RGBAToU16(EnvBRDF);    
-    return PrefilteredColor.rgb * SpecularColor* rg.x + saturate( 50.0 * PrefilteredColor.g ) * rg.y;
+    //原来的括号不对
+    speccontrib = (SpecularColor* rg.x + saturate( 50.0 * PrefilteredColor.g ) * rg.y);
+    return PrefilteredColor.rgb * speccontrib;
 }
 
 vec3 testDiff(vec3 R ){
@@ -121,6 +125,6 @@ void main() {
     vec3 F0 =  mix(nonmetalF0, basecolor.rgb, pbrinfo.b);
     vec3 color_spec = ApproximateSpecularIBL(F0,pbrinfo.g, NoV, R);
     vec3 color_diff=testDiff1(normal)*basecolor.rgb;
-    fragColor.rgb = color_spec;//pbrinfo.ggg;//color_spec +((1.0-pbrinfo.b)*color_diff) ;//+color_diff;// (refcol.xyz);// basecolor;
+    fragColor.rgb = color_spec+ (vec3(1.,1.,1.)-speccontrib)*color_diff;//pbrinfo.ggg;//color_spec +((1.0-pbrinfo.b)*color_diff) ;//+color_diff;// (refcol.xyz);// basecolor;
     fragColor.a = 1.0;
 }
