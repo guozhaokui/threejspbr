@@ -30,23 +30,5 @@
             "normal":"MF000H_N.png",
             "bprinfo":"MF000H_orm"
         }
-    },
-
-    "scene":{
-        "envmap":{
-            "path":"imgs/env/AtticRoom/",
-            "prefilter":{
-                "prefix":"env_",
-                "num":10,
-                "suffix":".hdr.raw"
-            },
-            "map":"env.png"
-        },
-        "objs":[
-            {
-                "class":"model1",
-                "pos":[0,0,0]
-            }
-        ]
     }
 }

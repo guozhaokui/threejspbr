@@ -1,0 +1,14 @@
+{
+    "envmap":{
+        "path":"imgs/env/AtticRoom/",
+        "prefilter":["env_",10,".hdr.raw"],
+        "diffpre":"envdiff.png",
+        "map":"env.png"
+    },
+    "objs":[
+        {
+            "class":"model1",
+            "pos":[0,0,0]
+        }
+    ]
+}

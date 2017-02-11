@@ -41,7 +41,7 @@ var loadermgr = new THREE.LoadingManager(
 )
 
 var mloader = new MapLoader(scene);
-mloader.load('./assets/sce1.json',scene);
+mloader.load('./assets/maps/sce1.json',scene);
 
 //texture
 var loader = new THREE.TextureLoader(loadermgr);

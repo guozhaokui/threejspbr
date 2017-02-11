@@ -6,7 +6,6 @@ import { testModel } from './model';
  * 采用类似UE4的标准
  */
 
-
 export class UEPbrMtl {
     mtl:THREE.RawShaderMaterial;
     baseColorFile:string;
@@ -75,6 +74,7 @@ export class MapLoader{
     texenv:THREE.Texture;
     texenvdiff:THREE.Texture;   //临时。以后用SH
     pbrlut:THREE.Texture;
+    resdefobj:any;
     sceobj:any;
     loaded=false;//TODO texture不能用cache，所以只能load，load会导致再次调用onload，所以
     constructor(sce:THREE.Scene){
@@ -89,71 +89,65 @@ export class MapLoader{
         this.binxhrloader = new THREE.XHRLoader(this.loaderMgr);
         this.binxhrloader.responseType='arraybuffer';
         this.allfiles.push([]);//0
-        //.assets/imgs/pbrlut.raw
-        //assets/imgs/env/AtticRoom/ env_0.hdr.raw  ~ env_10.hdr.raw
-
         this.txtxhrloader = new THREE.XHRLoader(this.loaderMgr);
         this.allfiles.push([]);//1
-        //./shaders/vs1.glsl ./shaders/uepbr.glsl
-
         this.texloader = new THREE.TextureLoader(this.loaderMgr);
         this.allfiles.push([]);//2
-        //assets/imgs/env/AtticRoom/ env.png
-        //assets/models/  MF000_D.png MF000_N.png  MF000_orm.png 
-        //MF000F_D.png MF000F_N.png MF000F_orm.png MF000H_D.png MF000H_N.png MF000H_orm.png
 
         this.modloader_obj = new (THREE as any).OBJLoader();
         this.allfiles.push([]);//3
-        //./assets/models/o.obj
     }
 
     load(src:string,sce:THREE.Scene){
-        this.txtxhrloader.load(src,(responseText)=>{
-            this.sceobj = JSON.parse(responseText);
-            if(!this.sceobj){
-                alert('error1');
-            }else{
-                this.allfiles[0]=['./assets/imgs/pbrlut.raw',
-                './assets/imgs/env/AtticRoom/env_0.hdr.raw',
-                './assets/imgs/env/AtticRoom/env_1.hdr.raw',
-                './assets/imgs/env/AtticRoom/env_2.hdr.raw',
-                './assets/imgs/env/AtticRoom/env_3.hdr.raw',
-                './assets/imgs/env/AtticRoom/env_4.hdr.raw',
-                './assets/imgs/env/AtticRoom/env_5.hdr.raw',
-                './assets/imgs/env/AtticRoom/env_6.hdr.raw',
-                './assets/imgs/env/AtticRoom/env_7.hdr.raw',
-                './assets/imgs/env/AtticRoom/env_8.hdr.raw',
-                './assets/imgs/env/AtticRoom/env_9.hdr.raw',
-                './assets/imgs/env/AtticRoom/env_10.hdr.raw'
-                ];
-                this.allfiles[1]=['./shaders/vs1.glsl', './shaders/uepbr.glsl'];
-                this.allfiles[2]=['./assets/imgs/env/AtticRoom/env.png',
-                './assets/imgs/env/AtticRoom/envdiff.png',
-                './assets/models/jianling/MF000_D.png', 
-                './assets/models/jianling/MF000_N.png',   
-                './assets/models/jianling/MF000_orm.png',  
-                './assets/models/jianling/MF000F_D.png', 
-                './assets/models/jianling/MF000F_N.png',  
-                './assets/models/jianling/MF000F_orm.png',  
-                './assets/models/jianling/MF000H_D.png',  
-                './assets/models/jianling/MF000H_N.png',  
-                './assets/models/jianling/MF000H_orm.png',
-                './assets/models/sphere/basecolor.png',
-                './assets/models/sphere/normal.png',
-                './assets/models/sphere/orm.png'
-                ];
-                this.allfiles[3]=['./assets/models/jianling/o.obj',
-                './assets/models/sphere/sphere.obj'
-                ];
+        this.txtxhrloader.load('./assets/maps/res.json',(resdef)=>{
+            this.resdefobj = JSON.parse(resdef);
+            this.txtxhrloader.load(src,(responseText)=>{
+                this.sceobj = JSON.parse(responseText);
+                if(!this.sceobj){
+                    alert('error1');
+                }else{
+                    this.allfiles[0]=['./assets/imgs/pbrlut.raw',
+                    './assets/imgs/env/AtticRoom/env_0.hdr.raw',
+                    './assets/imgs/env/AtticRoom/env_1.hdr.raw',
+                    './assets/imgs/env/AtticRoom/env_2.hdr.raw',
+                    './assets/imgs/env/AtticRoom/env_3.hdr.raw',
+                    './assets/imgs/env/AtticRoom/env_4.hdr.raw',
+                    './assets/imgs/env/AtticRoom/env_5.hdr.raw',
+                    './assets/imgs/env/AtticRoom/env_6.hdr.raw',
+                    './assets/imgs/env/AtticRoom/env_7.hdr.raw',
+                    './assets/imgs/env/AtticRoom/env_8.hdr.raw',
+                    './assets/imgs/env/AtticRoom/env_9.hdr.raw',
+                    './assets/imgs/env/AtticRoom/env_10.hdr.raw'
+                    ];
+                    this.allfiles[1]=['./shaders/vs1.glsl', './shaders/uepbr.glsl'];
+                    this.allfiles[2]=['./assets/imgs/env/AtticRoom/env.png',
+                    './assets/imgs/env/AtticRoom/envdiff.png',
+                    './assets/models/jianling/MF000_D.png', 
+                    './assets/models/jianling/MF000_N.png',   
+                    './assets/models/jianling/MF000_orm.png',  
+                    './assets/models/jianling/MF000F_D.png', 
+                    './assets/models/jianling/MF000F_N.png',  
+                    './assets/models/jianling/MF000F_orm.png',  
+                    './assets/models/jianling/MF000H_D.png',  
+                    './assets/models/jianling/MF000H_N.png',  
+                    './assets/models/jianling/MF000H_orm.png',
+                    './assets/models/sphere/basecolor.png',
+                    './assets/models/sphere/normal.png',
+                    './assets/models/sphere/orm.png'
+                    ];
+                    this.allfiles[3]=['./assets/models/jianling/o.obj',
+                    './assets/models/sphere/sphere.obj'
+                    ];
 
-                var loader=[this.binxhrloader,this.txtxhrloader,this.texloader,this.modloader_obj];
-                this.allfiles.forEach((all,loaderidx)=>{
-                    all.forEach((f,fidx)=>{
-                        (loader[loaderidx] as threejsloader).load(f);
+                    var loader=[this.binxhrloader,this.txtxhrloader,this.texloader,this.modloader_obj];
+                    this.allfiles.forEach((all,loaderidx)=>{
+                        all.forEach((f,fidx)=>{
+                            (loader[loaderidx] as threejsloader).load(f);
+                        })
                     })
-                })
-            }
-        });        
+                }
+            });        
+        });
     }
 
     getAllFiles(obj:Object):string[]{
@@ -170,10 +164,8 @@ export class MapLoader{
     loadScene(){
         this.loadLUT();
         this.loadEnv('AtticRoom');
+        //this.loadEnv('overcloud');
 
-        this.texenvdiff = this.texloader.load('./assets/imgs/env/AtticRoom/envdiff.png');
-        this.texenvdiff.wrapT = THREE.ClampToEdgeWrapping;
-        this.texenvdiff.wrapS = THREE.RepeatWrapping;
         //测试球
         var geometry = new THREE.SphereGeometry(1,60,60);//THREE.BoxGeometry(2,2,2,20,20,20);// 
         var pbrmtl = new UEPbrMtl(
@@ -189,7 +181,7 @@ export class MapLoader{
         sphere.position.set(0,2,2);        
 
         //测试模型
-        var objmtl = this.sceobj.model1;
+        var objmtl = this.resdefobj.model1;
         this.modloader_obj.load('./assets/models/jianling/o.obj',(o:THREE.Group)=>{
             o.children.forEach((v:THREE.Mesh)=>{
                 var texpath = objmtl.path+'/';
@@ -262,6 +254,10 @@ export class MapLoader{
             mip0,mip1,mip2,mip3,mip4,mip5,mip6,mip7,mip8,mip9, mip10,mip11
         ];
         this.texenv.needsUpdate=true;
+
+        this.texenvdiff = this.texloader.load(p+'/envdiff.png');
+        this.texenvdiff.wrapT = THREE.ClampToEdgeWrapping;
+        this.texenvdiff.wrapS = THREE.RepeatWrapping;
 
         //用来显示的球
         var mtlsky = new THREE.MeshBasicMaterial({
