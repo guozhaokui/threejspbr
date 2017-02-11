@@ -113,9 +113,7 @@ float normal_distrib(
   return tmp * tmp * M_INV_PI;
 }
 
-vec3 fresnel(
-  float vdh,
-  vec3 F0){
+vec3 fresnel(  float vdh,  vec3 F0){
   // Schlick with Spherical Gaussian approximation
   // cf http://blog.selfshadow.com/publications/s2013-shading-course/karis/s2013_pbs_epic_notes_v2.pdf p3
   float sphg = pow(2.0, (-5.55473*vdh - 6.98316) * vdh);
@@ -130,10 +128,7 @@ float G1(
   return 1.0 / ( ndw*(1.0-k) +  k );
 }
 
-float visibility(
-  float ndl,
-  float ndv,
-  float Roughness){
+float visibility(  float ndl,  float ndv,  float Roughness){
   // Schlick with Smith-like choice of k
   // cf http://blog.selfshadow.com/publications/s2013-shading-course/karis/s2013_pbs_epic_notes_v2.pdf p3
   // visibility is a Cook-Torrance geometry function divided by (n.l)*(n.v)
@@ -144,6 +139,7 @@ float visibility(
 vec3 cook_torrance_contrib( float vdh,  float ndh,  float ndl,  float ndv,  vec3 Ks,  float Roughness){
   // This is the contribution when using importance sampling with the GGX based
   // sample distribution. This means ct_contrib = ct_brdf / ggx_probability
+  // 把BRDF公式的D去掉，就是反射的贡献？
   return fresnel(vdh,Ks) * (visibility(ndl,ndv,Roughness) * vdh * ndl / ndh );
 }
 

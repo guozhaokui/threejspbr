@@ -80,7 +80,7 @@ void texPanoramaLod(sampler2D tex, const in vec3 dir, out vec4 rgba, float lod){
 
 vec3 ApproximateSpecularIBL( vec3 SpecularColor , float Roughness , float NoV, vec3 R){
     vec4 PrefilteredColor;
-    texPanoramaLod(texPreFilterdEnv, R, PrefilteredColor, Roughness*10.0);
+    texPanoramaLod(texPreFilterdEnv, R, PrefilteredColor, Roughness*11.0);
     PrefilteredColor.rgb = _RGBEToRGB(PrefilteredColor);
     vec4 EnvBRDF = texture(texBRDFLUT,vec2(Roughness , NoV));//TODO lod
     vec2 rg = _RGBAToU16(EnvBRDF);    
@@ -111,7 +111,7 @@ vec3 diff_sh9(vec3 dir){
 
 void main() {
     vec3 normal =  normalize(vWorldNorm);
-    //normal = perturbNormal2Arb( -vViewPos.xyz, normal );
+    normal = perturbNormal2Arb( -vViewPos.xyz, normal );
     vec3 view   = -normalize(vViewDir);
     vec4 pbrinfo = texture(texORM,vUv);
     vec4 basecolor = texture(texBaseColor,vUv);
