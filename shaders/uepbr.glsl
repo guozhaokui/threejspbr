@@ -124,7 +124,7 @@ void main() {
     const vec3 nonmetalF0 =vec3(0.2);
     vec3 F0 =  mix(nonmetalF0, basecolor.rgb, pbrinfo.b);
     vec3 color_spec = ApproximateSpecularIBL(F0,pbrinfo.g, NoV, R);
-    vec3 color_diff=testDiff1(normal)*basecolor.rgb;
-    fragColor.rgb = color_spec+ (vec3(1.,1.,1.)-speccontrib)*color_diff;//pbrinfo.ggg;//color_spec +((1.0-pbrinfo.b)*color_diff) ;//+color_diff;// (refcol.xyz);// basecolor;
+    vec3 color_diff=testDiff1(normal);
+    fragColor.rgb = (vec3(1.,1.,1.)-speccontrib)*mix(basecolor.rgb,vec3(0,0,0),pbrinfo.b);//+color_spec;//pbrinfo.ggg;//color_spec +((1.0-pbrinfo.b)*color_diff) ;//+color_diff;// (refcol.xyz);// basecolor;
     fragColor.a = 1.0;
 }
