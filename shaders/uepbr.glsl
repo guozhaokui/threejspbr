@@ -8,6 +8,7 @@ in vec2 vUv;
 in vec3 vWorldNorm;
 in vec3 vViewDir;
 in vec4 vViewPos;
+in vec4 vWorldPos;
 //
 uniform sampler2D texBaseColor;
 uniform sampler2D texNormal;
@@ -51,6 +52,7 @@ vec3 perturbNormal2Arb( vec3 eye_pos, vec3 surf_norm ) {
     vec3 N = normalize( surf_norm );
     vec3 mapN = texture( texNormal, vUv ).xyz * 2.0 - 1.0;
     mapN.xy = normalScale * mapN.xy;
+    //TODO mapN 有接缝
     mat3 tsn = mat3( S, T, N );
     return normalize( tsn * mapN );
 }
@@ -113,9 +115,15 @@ vec3 diff_sh9(vec3 dir){
     return vec3(0.0,0.,0.);
 }
 
+vec3 flatNorm(){
+    vec3 fdx = vec3( dFdx( vWorldPos.x ), dFdx( vWorldPos.y ), dFdx( vWorldPos.z ) );
+    vec3 fdy = vec3( dFdy( vWorldPos.x ), dFdy( vWorldPos.y ), dFdy( vWorldPos.z ) );
+    return normalize( cross( fdx, fdy ) );
+}
+
 void main() {
     vec3 normal =  normalize(vWorldNorm);
-    //normal = perturbNormal2Arb( -vViewPos.xyz, normal );
+    normal = perturbNormal2Arb( vWorldPos.xyz, normal );
     vec3 view   = -normalize(vViewDir);
     vec4 pbrinfo = texture(texORM,vUv);
     vec4 basecolor = texture(texBaseColor,vUv);
