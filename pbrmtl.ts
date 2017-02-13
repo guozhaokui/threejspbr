@@ -234,6 +234,8 @@ export class MapLoader{
                     var texpbr = this.texloader.load(texpath+groupmtl.pbrinfo);
                     var mtl = new UEPbrMtl(texbc,texnorm,texpbr,this.texenv,this.texenvdiff, this.pbrlut);
                     this.allmtls.push(mtl.mtl);
+                    //TODO 计算tangent
+                    var geo = v.geometry;
                     v.material = mtl.mtl;
                     //v.position.set(-1.5,0,4);
                     v.position.set(0,0,0);
