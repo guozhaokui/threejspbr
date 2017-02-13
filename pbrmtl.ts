@@ -300,7 +300,8 @@ export class MapLoader{
 
         this.texenvdiff = this.texloader.load(p+'/envdiff.png');
         this.texenvdiff.wrapT = THREE.ClampToEdgeWrapping;
-        this.texenvdiff.wrapS = THREE.RepeatWrapping;
+        this.texenvdiff.wrapS = THREE.ClampToEdgeWrapping;
+        this.texenvdiff.minFilter=THREE.NearestFilter;  //否则会有一个缝。反正大部分情况下是放大。
 
         //用来显示的球
         var mtlsky = new THREE.MeshBasicMaterial({

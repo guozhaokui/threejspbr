@@ -115,7 +115,7 @@ vec3 diff_sh9(vec3 dir){
 
 void main() {
     vec3 normal =  normalize(vWorldNorm);
-    normal = perturbNormal2Arb( -vViewPos.xyz, normal );
+    //normal = perturbNormal2Arb( -vViewPos.xyz, normal );
     vec3 view   = -normalize(vViewDir);
     vec4 pbrinfo = texture(texORM,vUv);
     vec4 basecolor = texture(texBaseColor,vUv);
@@ -125,6 +125,6 @@ void main() {
     vec3 F0 =  mix(nonmetalF0, basecolor.rgb, pbrinfo.b);
     vec3 color_spec = ApproximateSpecularIBL(F0,pbrinfo.g, NoV, R);
     vec3 color_diff=testDiff1(normal);
-    fragColor.rgb = (vec3(1.,1.,1.)-speccontrib)*mix(basecolor.rgb,vec3(0,0,0),pbrinfo.b);//+color_spec;//pbrinfo.ggg;//color_spec +((1.0-pbrinfo.b)*color_diff) ;//+color_diff;// (refcol.xyz);// basecolor;
+    fragColor.rgb = color_diff*mix(basecolor.rgb,vec3(0,0,0),pbrinfo.b)+color_spec;
     fragColor.a = 1.0;
 }

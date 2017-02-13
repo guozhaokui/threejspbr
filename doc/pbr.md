@@ -79,6 +79,7 @@ http://www.ppsloan.org/publications/StupidSH36.pdf
 
 http://www.paulsprojects.net/opengl/sh/sh.html
     带源码
+https://cseweb.ucsd.edu/~ravir/papers/envmap/envmap.pdf
 
 傅立叶变换是用两个正交的函数（sin，cos）描述复数空间的圆上的函数
 sh是用来描述球面上的函数.

@@ -169,6 +169,7 @@ float computeLOD(vec3 Ln, float p){
 vec4 pbrComputeBRDF(V2F inputs, vec3 diffColor, vec3 specColor, float glossiness, float occlusion){
   //world space normal
   vec3 normal_vec = computeWSNormal(inputs.tex_coord, inputs.tangent, inputs.bitangent, inputs.normal);
+  return vec4(normal_vec,1.);
   if (isBackFace()) {
     normal_vec = -normal_vec;
   }
@@ -253,7 +254,7 @@ vec4 shade(V2F inputs) {
   float occlusion = getAO(inputs.tex_coord) * getShadowFactor();
 
   // Feed parameters for a physically based BRDF integration
-  return vec4(inputs.normal.xyz,1.0);
+  //return vec4(inputs.normal.xyz,1.0);
   return pbrComputeBRDF(inputs, diffColor, specColor, glossiness, occlusion);
 
   //return texture2D(normal_tex,inputs.tex_coord);
