@@ -42,18 +42,29 @@ float saturate(float v){
 }
 
 const vec2 normalScale=vec2(1.,1.);
-vec3 perturbNormal2Arb( vec3 eye_pos, vec3 surf_norm ) {
-    vec3 q0 = dFdx( eye_pos.xyz );
-    vec3 q1 = dFdy( eye_pos.xyz );
-    vec2 st0 = dFdx( vUv.st );
-    vec2 st1 = dFdy( vUv.st );
-    vec3 S = normalize( q0 * st1.t - q1 * st0.t );
-    vec3 T = normalize( -q0 * st1.s + q1 * st0.s );
+/**
+    这个就是用的普通的求tangent的方法，只不过不再通过三角形的三个顶点计算。
+    相当于根据相邻的3个像素来计算，例如当前p0 右边 p1, 下面p2, 可以用dFdx来获得这三个点之间的位置差和uv差，然后
+    根据
+    q0=T*st0.x+B*st0.y;
+    q1=T*st1.x+B*st1.y;
+    来计算T和B
+    问题：
+        1. 还没有细想T和B谁是x谁是y，现在是T,B,N不对就改成 B,T,N
+        2. 现在的效果还不太对，可能是只有法线平滑了，但是T，B都是平的有关
+*/
+vec3 perturbNormal2Arb( vec3 pos, vec3 surf_norm ) {
+    vec3 q0 = dFdx( pos.xyz );
+    vec3 q1 = dFdy( pos.xyz );
+    vec2 st0 = dFdx( vUv );
+    vec2 st1 = dFdy( vUv );
+    //float f1 = 1.0/(st0.y*st1.x-st1.y*st0.x); 由于要normalize，这个系数就不要了
+    vec3 T = normalize(-q0*st1.y+q1*st0.y);
+    vec3 B = normalize(q0*st1.x-q1*st0.x);
     vec3 N = normalize( surf_norm );
     vec3 mapN = texture( texNormal, vUv ).xyz * 2.0 - 1.0;
     mapN.xy = normalScale * mapN.xy;
-    //TODO mapN 有接缝
-    mat3 tsn = mat3( S, T, N );
+    mat3 tsn = mat3( B, T, N );  //注意调整T,B的顺序
     return normalize( tsn * mapN );
 }
 
