@@ -42,7 +42,7 @@ float saturate(float v){
     return min(max(v,0.),1.);
 }
 
-const vec2 normalScale=vec2(1.,1.);
+const float normalScale=1.0;
 /**
     这个就是用的普通的求tangent的方法，只不过不再通过三角形的三个顶点计算。
     相当于根据相邻的3个像素来计算，例如当前p0 右边 p1, 下面p2, 可以用dFdx来获得这三个点之间的位置差和uv差，然后

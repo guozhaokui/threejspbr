@@ -26,29 +26,6 @@ var ySegs = 10;
 
 var clothFunction = plane(restDistance*xSegs,restDistance*ySegs);
 
-var cloth = new Cloth(xSegs,ySegs);
-var GRAVITY = 981*1.4;
-var gravity = new THREE.Vector3(0,-GRAVITY,0).multiplyScalar(MASS);
-
-var TIMESTEP = 18/1000;
-var TIMESTEP_SQ = TIMESTEP*TIMESTEP;
-var pins = [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ];
-
-var wind=true;
-var windStrenth=2.0;
-var windForce=new THREE.Vector3(0,0,0);
-
-var tmpForce = new THREE.Vector3();
-var lastTime=0;
-var clothGeometry:THREE.Geometry=null;
-function plane(width:number, height:number){
-    return function(u:number, v:number){
-        var x =(u-0.5)*width;
-        var y = (u+0.5)*height;
-        var z=0;
-        return new THREE.Vector3(x,y,z);
-    }
-}
 
 class Particle{
     position:THREE.Vector3;
@@ -96,28 +73,12 @@ class _constraint{
     dist:number;
 }
 
-var diff = new THREE.Vector3();
-
-/**
- * 两个点逐渐靠近或者远离来满足长度限制
- */
-function satisifyConstraints(p1:Particle, p2:Particle, distance:number){
-    diff.subVectors(p2.position, p1.position);
-    var currentDist = diff.length();
-    if( currentDist===0) return;//下面要除
-    var correction = diff.multiplyScalar(
-        1.0-distance/currentDist
-    );
-    var correctionHalf = correction.multiplyScalar(0.5);
-    p1.position.add(correctionHalf);
-    p2.position.sub(correctionHalf);
-}
 
 class Cloth{
     w=10;
     h=10;
-    particles:Particle[];
-    constraints:_constraint[];
+    particles:Particle[]=[];
+    constraints:_constraint[]=[];
     constructor(w:number,h:number){
         this.w=w||10;
         this.h=h||10;
@@ -261,4 +222,45 @@ function simulate( time:number ) {
 		p.position.copy( p.original );
 		p.previous.copy( p.original );
 	}
+}
+
+var cloth = new Cloth(xSegs,ySegs);
+var GRAVITY = 981*1.4;
+var gravity = new THREE.Vector3(0,-GRAVITY,0).multiplyScalar(MASS);
+
+var TIMESTEP = 18/1000;
+var TIMESTEP_SQ = TIMESTEP*TIMESTEP;
+var pins = [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ];
+
+var wind=true;
+var windStrenth=2.0;
+var windForce=new THREE.Vector3(0,0,0);
+
+var tmpForce = new THREE.Vector3();
+var lastTime=0;
+var clothGeometry:THREE.Geometry=null;
+function plane(width:number, height:number){
+    return function(u:number, v:number){
+        var x =(u-0.5)*width;
+        var y = (u+0.5)*height;
+        var z=0;
+        return new THREE.Vector3(x,y,z);
+    }
+}
+
+var diff = new THREE.Vector3();
+
+/**
+ * 两个点逐渐靠近或者远离来满足长度限制
+ */
+function satisifyConstraints(p1:Particle, p2:Particle, distance:number){
+    diff.subVectors(p2.position, p1.position);
+    var currentDist = diff.length();
+    if( currentDist===0) return;//下面要除
+    var correction = diff.multiplyScalar(
+        1.0-distance/currentDist
+    );
+    var correctionHalf = correction.multiplyScalar(0.5);
+    p1.position.add(correctionHalf);
+    p2.position.sub(correctionHalf);
 }

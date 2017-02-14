@@ -62,6 +62,7 @@ export class Modelloader{
 interface threejsloader{
     load(url);
 }
+
 export class MapLoader{
     loaderMgr:THREE.LoadingManager;
     binxhrloader:THREE.XHRLoader;
@@ -238,11 +239,12 @@ export class MapLoader{
                     //参考 http://gamedev.stackexchange.com/questions/68612/how-to-compute-tangent-and-bitangent-vectors
                     var geo = v.geometry as THREE.BufferGeometry;
                     var poscount = geo.attributes['position'].count;
-                    var testAttr = new Float32Array(poscount*3);
-                    for(var ti=0; ti<poscount*3; ti++){
-                        testAttr[ti]=Math.random();
+                    if( !geo.getIndex()){
                     }
-                    geo.addAttribute('testAttr',new THREE.BufferAttribute(testAttr,3));
+                    var tangentAttr = new Float32Array(poscount*3);
+                    var bintanAttr = new Float32Array(poscount*3);
+                    geo.addAttribute('tangent',new THREE.BufferAttribute(tangentAttr,3));
+                    geo.addAttribute('bintangent',new THREE.BufferAttribute(tangentAttr,3));
                     v.material = mtl.mtl;
                     //v.position.set(-1.5,0,4);
                     v.position.set(0,0,0);
@@ -327,7 +329,7 @@ export class MapLoader{
         this.allmtls.forEach((v:any)=>{
             if((window as any).require){
                 var fs = require('fs');
-                v.fragmentShader= fs.readFileSync( 'F:/work/pbr/threejspbr/shaders/'+'uepbr.glsl','utf8');
+                v.fragmentShader= fs.readFileSync( __dirname+'/shaders/'+'uepbr.glsl','utf8');
             }            
             v.needsUpdate=true;
         });
