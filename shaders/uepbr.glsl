@@ -9,6 +9,7 @@ in vec3 vWorldNorm;
 in vec3 vViewDir;
 in vec4 vViewPos;
 in vec4 vWorldPos;
+in vec3 vTest;
 //
 uniform sampler2D texBaseColor;
 uniform sampler2D texNormal;

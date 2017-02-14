@@ -235,7 +235,14 @@ export class MapLoader{
                     var mtl = new UEPbrMtl(texbc,texnorm,texpbr,this.texenv,this.texenvdiff, this.pbrlut);
                     this.allmtls.push(mtl.mtl);
                     //TODO 计算tangent
-                    var geo = v.geometry;
+                    //参考 http://gamedev.stackexchange.com/questions/68612/how-to-compute-tangent-and-bitangent-vectors
+                    var geo = v.geometry as THREE.BufferGeometry;
+                    var poscount = geo.attributes['position'].count;
+                    var testAttr = new Float32Array(poscount*3);
+                    for(var ti=0; ti<poscount*3; ti++){
+                        testAttr[ti]=Math.random();
+                    }
+                    geo.addAttribute('testAttr',new THREE.BufferAttribute(testAttr,3));
                     v.material = mtl.mtl;
                     //v.position.set(-1.5,0,4);
                     v.position.set(0,0,0);

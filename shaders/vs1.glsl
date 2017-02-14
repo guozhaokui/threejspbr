@@ -11,6 +11,7 @@ in vec3 normal;
 in vec3 tangent;
 in vec3 bintangent;
 in vec2 uv;
+in vec3 testAttr;
 
 out vec2 vUv;
 out vec3 vWorldNorm;
@@ -20,6 +21,7 @@ out vec3 vLightDir;
 out vec3 vViewDir;
 out vec3 vRefDir;
 out vec3 vNorm;
+out vec3 vTest;
 
 invariant gl_Position;
 
@@ -32,4 +34,5 @@ void main() {
     vViewDir = normalize(vWorldPos.xyz-cameraPosition);
     vRefDir = reflect(vViewDir,vWorldNorm);
     gl_Position = projectionMatrix * vViewPos;
+    vTest = testAttr;
 }
