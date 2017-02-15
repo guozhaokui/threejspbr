@@ -20,7 +20,7 @@ export class UEPbrMtl {
             texBaseColor:{value:texbasecolor},
             texNormal:{value:texnormal},
             texORM:{value:texpbrinfo},
-            texPreFilterdEnv:{value:preenv},
+            texPrefilterdEnv:{value:preenv},
             texPrefilterDiff:{value:prediff},
             texBRDFLUT:{value:pbrlut}
         };

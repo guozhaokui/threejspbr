@@ -15,7 +15,7 @@ uniform sampler2D texBaseColor;
 uniform sampler2D texNormal;
 uniform sampler2D texORM;   //Ao, Roughness, Metallic
 //预计算的贴图
-uniform sampler2D texPreFilterdEnv;
+uniform sampler2D texPrefilterdEnv;
 uniform sampler2D texBRDFLUT;
 uniform sampler2D texPrefilterDiff;
 
@@ -96,7 +96,7 @@ void texPanoramaLod(sampler2D tex, const in vec3 dir, out vec4 rgba, float lod){
 
 vec3 ApproximateSpecularIBL( vec3 SpecularColor , float Roughness , float NoV, vec3 R){
     vec4 PrefilteredColor;
-    texPanoramaLod(texPreFilterdEnv, R, PrefilteredColor, Roughness*14.0);
+    texPanoramaLod(texPrefilterdEnv, R, PrefilteredColor, Roughness*14.0);
     PrefilteredColor.rgb = _RGBEToRGB(PrefilteredColor);
     vec4 EnvBRDF = texture(texBRDFLUT,vec2(Roughness , NoV));//TODO lod
     vec2 rg = _RGBAToU16(EnvBRDF);    
@@ -107,7 +107,7 @@ vec3 ApproximateSpecularIBL( vec3 SpecularColor , float Roughness , float NoV, v
 
 vec3 testDiff(vec3 R ){
     vec4 PrefilteredColor;
-    texPanoramaLod(texPreFilterdEnv, R, PrefilteredColor, 9.);
+    texPanoramaLod(texPrefilterdEnv, R, PrefilteredColor, 9.);
     PrefilteredColor.rgb = _RGBEToRGB(PrefilteredColor);
     return PrefilteredColor.rgb;
 }
