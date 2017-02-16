@@ -105,14 +105,7 @@ vec3 ApproximateSpecularIBL( vec3 SpecularColor , float Roughness , float NoV, v
     return PrefilteredColor.rgb * speccontrib;
 }
 
-vec3 testDiff(vec3 R ){
-    vec4 PrefilteredColor;
-    texPanoramaLod(texPrefilterdEnv, R, PrefilteredColor, 9.);
-    PrefilteredColor.rgb = _RGBEToRGB(PrefilteredColor);
-    return PrefilteredColor.rgb;
-}
-
-vec3 testDiff1(vec3 R){
+vec3 testDiff(vec3 R){
     vec4 PrefilteredDiff;
     texPanorama(texPrefilterDiff, R, PrefilteredDiff);
     return PrefilteredDiff.rgb;
@@ -144,7 +137,7 @@ void main() {
     const vec3 nonmetalF0 =vec3(0.2);
     vec3 F0 =  mix(nonmetalF0, basecolor.rgb, pbrinfo.b);
     vec3 color_spec = ApproximateSpecularIBL(F0,pbrinfo.g, NoV, R);
-    vec3 color_diff=testDiff1(normal);
-    fragColor.rgb = color_diff*mix(basecolor.rgb,vec3(0,0,0),pbrinfo.b)+color_spec;
+    vec3 color_diff=testDiff(normal);
+    fragColor.rgb = color_diff*mix(basecolor.rgb,vec3(0,0,0),pbrinfo.b)*(vec3(1.)-speccontrib)+color_spec;
     fragColor.a = 1.0;
 }
