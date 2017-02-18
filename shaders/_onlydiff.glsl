@@ -184,6 +184,7 @@ vec4 pbrComputeBRDF(V2F inputs, vec3 diffColor, vec3 specColor, float glossiness
   vec3 Tp = normalize( inputs.tangent - normal_vec*dot(inputs.tangent, normal_vec)  ); // local tangent
   vec3 Bp = normalize(inputs.bitangent- normal_vec*dot(inputs.bitangent, normal_vec) - Tp*dot(inputs.bitangent, Tp) ); // local bitangent
 
+  return vec4(envIrradiance(normal_vec),1.);
   vec3 contribE = occlusion * envIrradiance(normal_vec) * diffColor;
 
   float roughness = 1.0 - glossiness;

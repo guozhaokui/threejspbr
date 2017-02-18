@@ -128,6 +128,7 @@ vec3 flatNorm(){
 
 void main() {
     vec3 normal =  normalize(vWorldNorm);
+    vec3 smoothnorm = normal;
     normal = perturbNormal2Arb( vWorldPos.xyz, normal );
     vec3 view   = -normalize(vViewDir);
     vec4 pbrinfo = texture(texORM,vUv);
@@ -137,7 +138,7 @@ void main() {
     const vec3 nonmetalF0 =vec3(0.2);
     vec3 F0 =  mix(nonmetalF0, basecolor.rgb, pbrinfo.b);
     vec3 color_spec = ApproximateSpecularIBL(F0,pbrinfo.g, NoV, R);
-    vec3 color_diff=testDiff(normal);
-    fragColor.rgb = color_diff*mix(basecolor.rgb,vec3(0,0,0),pbrinfo.b)*(vec3(1.)-speccontrib)+color_spec;
+    vec3 color_diff=testDiff(smoothnorm);
+    fragColor.rgb = color_diff*mix(basecolor.rgb,vec3(0,0,0),pbrinfo.b)+color_spec;
     fragColor.a = 1.0;
 }

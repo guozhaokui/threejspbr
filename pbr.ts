@@ -1,10 +1,12 @@
+import { loader_lh } from './model';
 import { MapLoader } from './pbrmtl';
 /// <reference path="typings/index.d.ts" />
-
 
 var scene = new THREE.Scene();
 var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
 
+//TEST
+var bb = new loader_lh();
 
 var renderer = new THREE.WebGLRenderer();
 renderer.setSize( window.innerWidth, window.innerHeight );
