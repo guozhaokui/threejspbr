@@ -89,3 +89,10 @@ n阶的话就有n*n个系数： 1 , 1+3, 1+3+5, 1+3+5+7
 
 ## diff和spec所占比重
 并不保证和为1
+
+
+## 重要度采样
+http://http.developer.nvidia.com/GPUGems3/gpugems3_ch20.html
+    这里介绍的方法可以帮助理解sp的shader
+    也可以用在动态面光源上。
+显然对于phi，重要度是相同的。而theta的话，越靠近视线（或反射）方向，重要度越大
