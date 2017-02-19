@@ -99,7 +99,7 @@ class binDataStruct{
             var isarr=num>1;
             //问题：如果某个uint32或者f32没有按照4对齐会报错。
             if(!isarr){
-                var dt = new cls(this.buff,off,1);
+                var dt = new cls(buff,off,1);
                 Object.defineProperty(this,av[0],{
                     set:function(v){dt[0]=v;},
                     get:function(){return dt[0];},
@@ -107,7 +107,7 @@ class binDataStruct{
                     configurable:true
                 });
             }else{
-                this[av[0]]=new cls(this.buff,off,num);
+                this[av[0]]=new cls(buff,off,num);
             }
             off+=binDataStruct.typeinfo[ti[0]][0]*num;;
         });
@@ -137,6 +137,9 @@ bf = new binDataStruct(['id,u32','dt,u32[4]']) as any;
 bf.dt[0]=10;
 bf.dt[1]=11;
 
+var bb = new Uint8Array([1,2,3]);
+var c=new binDataStruct(['a,u8','b,u8','c,u8'])
+c.attachBuff(bb.buffer,0)
 
 class Laya_Mesh{
     version='LAYASKINANI:01';
