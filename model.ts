@@ -44,18 +44,6 @@ class Laya_Material{
 
 }
 
-class Mesh_Savelayout{
-
-}
-var Mesh_savelayout=[
-    {name:'version',member:'version',type:'string'},
-    {name:'nouse',value:0,type:'u16'},
-    {name:'chunknumber',value:7,type:'u16'},//todo
-    {name:'datadesc'},
-    {name:'chunk_strings'},
-
-
-];
 
 /**
  * 根据描述创建一个buffer或者描述一个buffer
@@ -80,7 +68,7 @@ class binDataStruct{
     /**
      * 返回[type，num]
      */
-    gettype(str:string):[string,number]{
+    _gettype(str:string):[string,number]{
         var st=str.indexOf('[');
         var ed=str.indexOf(']');
         if(st<0){
@@ -93,7 +81,7 @@ class binDataStruct{
         var off=off;
         desc.forEach((v)=>{
             var av = v.split(',');if(av.length<2)throw 'error '+v;
-            var ti = this.gettype(av[1]);
+            var ti = this._gettype(av[1]);
             var cls = binDataStruct.typeinfo[ti[0]][1];
             var num = ti[1];
             var isarr=num>1;
@@ -116,7 +104,7 @@ class binDataStruct{
         var sz =0;
         desc.forEach((v)=>{
             var av = v.split(',');if(av.length<2)throw 'error '+v;
-            var ti = this.gettype(av[1]);
+            var ti = this._gettype(av[1]);
             var tp = ti[0];
             var num = ti[1];
             sz += binDataStruct.typeinfo[tp][0]*num;
@@ -127,7 +115,28 @@ class binDataStruct{
         this.cook(this.desc,buff,off);
     }
 }
-debugger;
+
+/**
+ * 根据描述字符串读写数据
+ */
+class strDataStruct{
+    constructor(){
+
+    }
+    desc(str:string){
+
+    }
+    size():number{
+        return 0;
+    }
+    fromBuff(buff:ArrayBuffer, off:number){
+
+    }
+    toBuff(buff:ArrayBuffer,off:number){
+
+    }
+}
+/*
 //var，type，defvalue
 var bf = new binDataStruct(['id,u16','padd,u16','dataoff,u32','datasize,u32']) as any;
 bf.datasize=22;
@@ -140,6 +149,12 @@ bf.dt[1]=11;
 var bb = new Uint8Array([1,2,3]);
 var c=new binDataStruct(['a,u8','b,u8','c,u8'])
 c.attachBuff(bb.buffer,0)
+*/
+class Laya_SubMesh{
+    attribs='POSITION:3,32,0;NORMAL:3,32,12;UV:2,32,24;'
+    _vertexBuffer;
+    _indexBuffer;
+}
 
 class Laya_Mesh{
     version='LAYASKINANI:01';
@@ -147,21 +162,55 @@ class Laya_Mesh{
     _materials:string[];    //只用字符串表示对应的材质文件或者材质id。有几个就表示有几个submesh
     _bindPoses:ArrayBuffer;//Matrix44[]
     _inverseBindPoses:ArrayBuffer;//Matrix44[]
-    _vertexBuffer;
-    _indexBuffer;
-    
+    submeshes:Laya_SubMesh[];
+}
+
+function str2Array(str:string):number[]{
+    var te = window['TextEncoder'];
+    if(te){
+        return (new te()).encode(str) as number[];
+    }else{
+        throw('no TextEncoder support!')
+    }
+}
+
+class Laya_Mesh_W{
+    mesh:Laya_Mesh;
+    buff:ArrayBuffer;
+    datav:DataView;
+    _writePos=0;
+    _buffmap:string[]=['BLOCK', 'DATA', 'STRINGS'];
+    static _datadesc='id,u16;dataoff,u32;datasize,u32;';
+    static _stringsdesc='id,u16;stroff,u32;strsize,u32;';
+    createBuff(){
+        var sz =this.getStrSize(this.mesh.version);
+        sz+=2;sz+=2;//chunk count
+
+        //DATA
+
+        this.buff = new ArrayBuffer(sz);
+        this.datav=new DataView(this.buff);
+    }
+
+    getStrSize(str:string){
+        return 2+str2Array.length;
+    }
+
+    outobj(obj,desc:string,buff:ArrayBuffer,off:number):number{
+        return 0;
+    }
+
     saveAsLm(){
-        this.wstr(this.version);
+        var coff=0;
+        this.wstr(this.mesh.version);
         this.wu16(0);
         this.wu16(7);//chunk count
 
         //0
         //data chunk
         //'DATA'
-        this.wu16(1);//data chunk id
-        var dataoff=0;var datasize=1;
-        this.wu32(dataoff);
-        this.wu32(datasize);
+        var dataC={id:1,dataoff:0,datasize:0};
+        coff += this.outobj(dataC,Laya_Mesh_W._datadesc,this.buff,coff);
 
         //1
         //strings chunk
@@ -215,16 +264,52 @@ class Laya_Mesh{
         //DATAAREA
         this.wstrid('DATAAREA');//=6
     }
-    wstr(str:string){};
+    wstr(str:string):number{
+        var strarr = str2Array(str);
+        this.wu16(strarr.length);
+        var udata = new Uint8Array(strarr);
+        new Uint8Array(this.buff, this._writePos).set(udata);//TODO test
+        this._writePos+=strarr.length;
+        return this._writePos;
+    };
+    
     wstrid(str:string){}//先转成id
-    wu16(n:number){};
+    wu16(n:number){
+        this.datav.setUint16(this._writePos,n,true);
+        this._writePos+=2;
+    };
     wu8(n:number){};
     wu32(n:number){};
     wf32(n:number){};
 }
 
-class Laya_SubMesh{
 
+
+/*
+    vec3 q0 = dFdx( pos.xyz );
+    vec3 q1 = dFdy( pos.xyz );
+    vec2 st0 = dFdx( vUv );
+    vec2 st1 = dFdy( vUv );
+    //float f1 = 1.0/(st0.y*st1.x-st1.y*st0.x); 由于要normalize，这个系数就不要了
+    vec3 T = normalize(-q0*st1.y+q1*st0.y);
+    vec3 B = normalize(q0*st1.x-q1*st0.x);
+    vec3 N = normalize( surf_norm );
+*/    
+
+function calcTangent( verts:Float32Array, p0:number, p1:number, p2:number, 
+        uv0:number, uv1:number, uv2:number, 
+        normal:number, tangent:number, binormal:number){
+    var dx0=verts[p1]- verts[p0]; var dy0=verts[p1+1]-verts[p0+1]; var dz0 = verts[p1+2]-verts[p0+2];
+    var dx1=verts[p2]- verts[p0]; var dy1=verts[p2+1]-verts[p0+1]; var dz1 = verts[p2+2]-verts[p0+2];
+    var du0=verts[uv1]-verts[uv0]; var dv0 = verts[uv1+1]-verts[uv0+1];
+    var du1=verts[uv2]-verts[uv0]; var dv1 = verts[uv2+1]-verts[uv0+1];
+    var tx = -dx0*dv1+dx1*dv0; var ty = -dy0*dv1+dy1*dv0; var tz = -dz0*dv1+dz1*dv0;
+    var bx = dx0*du1-dx1*du0; var by = dy0*du1-dy1*du0; var bz = dz0*du1-dz1*du0;
+    var tlen = Math.sqrt( tx*tx+ty*ty+tz*tz); if(tlen<1e-5)tlen=0.001;
+    var blen = Math.sqrt( bx*bx+by*by+bz*bz); if(blen<1e-5)blen=0.001;
+    //out
+    verts[tangent]=tx; verts[tangent+1]=ty; verts[tangent+2]=tz;
+    verts[binormal]=bx; verts[binormal+1]=by; verts[binormal+2]=bz;
 }
 /**
  * 问题：现在的格式无法略过不认识的块。
@@ -342,6 +427,7 @@ export class loader_lh{
         var bidBuff = new Uint8Array(this.buff.slice(boneDicofs+this.dataoffset,boneDicofs+this.dataoffset+boneDicsize));
 
         //todo
+        alert(this.readpos);
     }
 
     readString():string{
@@ -418,5 +504,5 @@ export class loader_lh{
 
 
 var cc = new loader_lh();
-var data = fs.readFileSync('F:/layaair/layaair/publish/LayaAirPublish/samples/as/3d/bin/h5/threeDimen/models/1/1-MF000F.lm');
+var data = fs.readFileSync('e:/layaair/layaair/publish/LayaAirPublish/samples/as/3d/bin/h5/threeDimen/models/1/1-MF000F.lm');
 cc.parse(data.buffer);
