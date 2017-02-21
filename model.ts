@@ -661,9 +661,21 @@ export class loader_lh{
 
 var cc = new loader_lh();
 cc.mesh = new Laya_Mesh();
-var data = fs.readFileSync('e:/layaair/layaair/publish/LayaAirPublish/samples/as/3d/bin/h5/threeDimen/models/1/1-MF000F.lm');
+var data = fs.readFileSync('e:/layaair/layaair/publish/LayaAirPublish/samples/as/3d/bin/h5/threeDimen/models/1/orilm/1-MF000.lm');
 cc.parse(data.buffer);
+
+function handlelm(mesh:Laya_Mesh){
+    mesh.materials.forEach((mtl,i)=>{
+        mesh.materials[i]='body.lpbr';//mtl.replace('.lmat','.lpbr');
+        console.log(mesh.materials[i]);
+    });
+    mesh.submeshes.forEach((sm)=>{
+        
+    });
+}
+handlelm(cc.mesh);
+
 var save = new Laya_Mesh_W();
 save.mesh=cc.mesh;
-save.saveAsLm('e:/layaair/layaair/publish/LayaAirPublish/samples/as/3d/bin/h5/threeDimen/models/1/1-MF000F2.lm');
+save.saveAsLm('e:/layaair/layaair/publish/LayaAirPublish/samples/as/3d/bin/h5/threeDimen/models/1/body.lm');
 debugger;
