@@ -40,10 +40,6 @@ class BufferRW{
     }
 }
 
-class Laya_Material{
-
-}
-
 
 /**
  * 根据描述创建一个buffer或者描述一个buffer
@@ -154,15 +150,16 @@ class Laya_SubMesh{
     attribs='POSITION:3,32,0;NORMAL:3,32,12;UV:2,32,24;'
     _vertexBuffer;
     _indexBuffer;
+    _boneindicesBuffer;//uint8
 }
 
 class Laya_Mesh{
     version='LAYASKINANI:01';
-    name='mesh01';
-    _materials:string[];    //只用字符串表示对应的材质文件或者材质id。有几个就表示有几个submesh
-    _bindPoses:ArrayBuffer;//Matrix44[]
-    _inverseBindPoses:ArrayBuffer;//Matrix44[]
-    submeshes:Laya_SubMesh[];
+    name='MESH';
+    materials:string[]=[];    //只用字符串表示对应的材质文件或者材质id。有几个就表示有几个submesh
+    _bindPoses:Float32Array;//Matrix44[]
+    _inverseBindPoses:Float32Array;//Matrix44[]
+    submeshes:Laya_SubMesh[]=[];
 }
 
 function str2Array(str:string):number[]{
@@ -174,60 +171,126 @@ function str2Array(str:string):number[]{
     }
 }
 
+class _submeshInfo{
+    iboff=0;
+    ibsize=0;
+    vboff=0;
+    vbsize=0;
+    boneidxoff=0;
+    boneidxsize=0;
+}
+
 class Laya_Mesh_W{
     mesh:Laya_Mesh;
     buff:ArrayBuffer;
     datav:DataView;
     _writePos=0;
-    _buffmap:string[]=['BLOCK', 'DATA', 'STRINGS'];
-    static _datadesc='id,u16;dataoff,u32;datasize,u32;';
-    static _stringsdesc='id,u16;stroff,u32;strsize,u32;';
-    createBuff(){
-        var sz =this.getStrSize(this.mesh.version);
-        sz+=2;sz+=2;//chunk count
+    _strmap:string[]=['BLOCK', 'DATA', 'STRINGS'];
+    nowrite=false;
 
-        //DATA
-
-        this.buff = new ArrayBuffer(sz);
-        this.datav=new DataView(this.buff);
-    }
+    dataOff=0;
+    dataSize=0;
+    strsOff=0;
+    strsSize=0;
+    bindPoseOff=0;
+    bindPoseSize=0;
+    invGBindePoseOff=0;
+    invGBindePoseSize=0;
+    submeshInfo:_submeshInfo[]=[];
 
     getStrSize(str:string){
-        return 2+str2Array.length;
+        return 2+str2Array(str).length;
     }
 
-    outobj(obj,desc:string,buff:ArrayBuffer,off:number):number{
-        return 0;
+    /**
+     * 返回写了多大。
+     */
+    outobj(obj,members:string,buff:ArrayBuffer,off:number):number{
+        if(!obj._memtype){
+            throw '对象中必须有_memtype 描述';
+        }
+        var mems = members.split(',');
+        var dview = new DataView(buff,off);
+        var moff=0;
+        mems.forEach((mname)=>{
+            var tp = obj._memtype[mname];
+            if(!tp)
+                throw 'no type info of member '+mname;
+            var value = obj[mname];
+            if( value==undefined)
+                throw 'no this member :'+mname;
+            var isarr = value instanceof Array;
+            var len = isarr?value.length:0;
+            if(isarr)throw 'outobj not implements array';
+
+            switch(tp){
+                case 'u8':
+                dview.setUint8(moff,value);moff+=1;               break;
+                case 'u16':
+                dview.setUint16(moff,value,true);moff+=2;         break;
+                case 'u32':
+                dview.setUint32(moff,value,true);moff+=4;         break;
+                case 'f32':
+                dview.setFloat32(moff,value,true);moff+=4;        break;
+            }
+        });
+        return moff;
     }
 
-    saveAsLm(){
-        var coff=0;
-        this.wstr(this.mesh.version);
-        this.wu16(0);
-        this.wu16(7);//chunk count
+    outStrings(strs:string[]){
+
+    }
+
+    saveAsLm(file:string){
+        this.submeshInfo= [];
+        this.mesh.submeshes.forEach((v,i)=>{
+            this.submeshInfo[i]=new _submeshInfo()
+        });
+
+        this.nowrite=true;
+        //先空跑一下，组装字符表，统计大小
+        this._saveAsLm(null);
+        var sz = this._writePos;
+        this.buff = new ArrayBuffer(sz);
+        this.datav=new DataView(this.buff);
+        this.nowrite=false;
+        this._writePos=0;
+        alert(sz);
+        this._saveAsLm(file);
+    }
+
+    _saveAsLm(file:string){
+        this.wstr(this.mesh.version)
+        .wu16(0)
+        .wu16(5+this.mesh.materials.length+this.mesh.submeshes.length);//chunk count
 
         //0
         //data chunk
         //'DATA'
-        var dataC={id:1,dataoff:0,datasize:0};
-        coff += this.outobj(dataC,Laya_Mesh_W._datadesc,this.buff,coff);
+        this.wu16(1)//data chunk id
+        .wu32(this.dataOff)
+        .wu32(this.dataSize);
+
+        //var dataC={id:1,dataoff:0,datasize:0,_memtype:{id:'u16',dataoff:'u32',datasize:'u32'}};
+        //this.outobj(dataC,'id,dataoff,datasize',this.buff,this._writePos);
 
         //1
         //strings chunk
         //'STRINGS'
-        this.wu16(2); //strings chunk id
-        var strsoff=0; var strssz = 1;
-        this.wu16(strsoff);
-        this.wu16(strssz);
+        this.wu16(2) //strings chunk id
+        .wu16(this.strsOff)
+        .wu16(this.strsSize);
         //把所有的string以wstr的方式写到对应区域
 
         //2
         //material chunk
         //'MATERIAL'
-        this.wu16(3);   //id
-        this.wu16(0);   //放到_materials数组的位置
-        this.wstrid('SIMPLE');//shader name
-        this.wstrid('mesh1.lmat');//url
+        this.mesh.materials.forEach((mtlname,i)=>{
+            this.wu16(3)   //id
+            this.wu16(i)   //放到_materials数组的位置
+            .wstrid('SIMPLE')//shader name /没有用
+            .wstrid(mtlname);//url
+        });
 
         //其他的material
         //this.wu16(3);//相同块的id相同
@@ -235,52 +298,104 @@ class Laya_Mesh_W{
         //3
         //mesh chunk
         //'MESH'
-        this.wu16(4); //id
-        this.wstrid('MESH'); //name
-        this.wu32(0);//bindpose start
-        this.wu32(0);//bindpose size
-        this.wu32(0);//invGBindPose start
-        this.wu32(0);//invGBindPose size
+        this.wu16(4) //id
+        .wstrid(this.mesh.name) //name
+        .wu32(this.bindPoseOff)//bindpose start
+        .wu32(this.bindPoseSize)//bindpose size
+        .wu32(this.invGBindePoseOff)//invGBindPose start
+        .wu32(this.invGBindePoseSize);//invGBindPose size
         //写bindpose和invgbindpos到相应的地方
 
         //4
         //sub mesh
         //"SUBMESH"
-        this.wu16(5);
         var materialid=0;
-        this.wu8(materialid);
-        this.wstrid('POSITION:3,32,0;NORMAL:3,32,12;UV:2,32,24;');
-        this.wu32(0);//ibofs    都是相对于data的
-        this.wu32(0);//ibsize
-        this.wu32(0);//vbIndicesofs 不知道干什么的
-        this.wu32(0);//vbIndicessize 不知道干什么的
-        this.wu32(0);//vbofs
-        this.wu32(0);//vbsize
-        this.wu32(0);//bonedicofs
-        this.wu32(0);//bonedicsize
+        this.mesh.submeshes.forEach((sm,i)=>{
+            var sminfo=this.submeshInfo[i];
+            this.wu16(5)
+            .wstrid('SUBMESH')
+            .wu8(materialid)
+            .wstrid('POSITION:3,32,0;NORMAL:3,32,12;UV:2,32,24;')
+            .wu32(sminfo.iboff)//ibofs    都是相对于data的
+            .wu32(sminfo.ibsize)//ibsize
+            .wu32(0)//vbIndicesofs 不知道干什么的
+            .wu32(0)//vbIndicessize 不知道干什么的
+            .wu32(sminfo.vboff)//vbofs
+            .wu32(sminfo.vbsize)//vbsize
+            .wu32(sminfo.boneidxoff)//bonedicofs
+            .wu32(sminfo.boneidxsize);//bonedicsize
+        });
         //写vb，ib，bonedic：int8[]
 
         //5
         //DATAAREA
         this.wstrid('DATAAREA');//=6
+
+        //strings
+        //vb
+        //ib
+        //pose
+        //invpose
+        //bone index       
     }
-    wstr(str:string):number{
+    wstr(str:string):Laya_Mesh_W{
         var strarr = str2Array(str);
         this.wu16(strarr.length);
-        var udata = new Uint8Array(strarr);
-        new Uint8Array(this.buff, this._writePos).set(udata);//TODO test
+        if(!this.nowrite){
+            var udata = new Uint8Array(strarr);
+            new Uint8Array(this.buff, this._writePos).set(udata);//TODO test
+        }
         this._writePos+=strarr.length;
-        return this._writePos;
+        return this;
     };
-    
-    wstrid(str:string){}//先转成id
-    wu16(n:number){
-        this.datav.setUint16(this._writePos,n,true);
+    wstrid(str:string):Laya_Mesh_W{//先转成id
+        var i = this._strmap.indexOf(str);
+        if(i==-1){
+            i=this._strmap.length;
+            this._strmap.push(str);
+        }
+        this.wu16(i);
+        return this;
+    }
+    wu16(n:number):Laya_Mesh_W{
+        if(!this.nowrite) this.datav.setUint16(this._writePos,n,true);
         this._writePos+=2;
+        return this;
     };
-    wu8(n:number){};
-    wu32(n:number){};
-    wf32(n:number){};
+    wu8(n:number):Laya_Mesh_W{
+        if(!this.nowrite) this.datav.setUint8(this._writePos,n);
+        this._writePos++;
+        return this;
+    };
+    wu32(n:number):Laya_Mesh_W{
+        if(!this.nowrite) this.datav.setUint32(this._writePos,n,true);
+        this._writePos+=4;
+        return this;
+    };
+    wf32(n:number):Laya_Mesh_W{ 
+        if(!this.nowrite) this.datav.setFloat32(this._writePos,n,true);
+        this._writePos+=4;
+        return this;
+    };
+    wab(arraybuffer:ArrayBuffer|DataView, length:number, offset:number) {
+        offset = offset ? offset : 0;
+        if (length < 0)
+            throw "wab error - Out of bounds";
+        var ab = null;
+        if (arraybuffer instanceof ArrayBuffer)
+            ab = arraybuffer;
+        else if (arraybuffer.buffer)
+            ab = arraybuffer.buffer;
+        else
+            throw "not arraybuffer/dataview ";
+        if(!this.nowrite){
+            var uint8array = new Uint8Array(ab, offset, length);
+            new Uint8Array(this.buff).set(uint8array,this._writePos);
+        }
+        this._writePos += length;
+        //需要对齐么
+        return this;
+    }    
 }
 
 
@@ -318,7 +433,6 @@ export class loader_lh{
     buff:ArrayBuffer;
     readpos=0;
     viewer:DataView;
-    _version='';
     _strings = ['BLOCK', 'DATA', 'STRINGS'];    //初始值。read_STRINGS后会被替换
     _funcs = [null,this.read_DATA.bind(this),this.read_STRINGS.bind(this)];
     blockCount=0;
@@ -326,16 +440,18 @@ export class loader_lh{
     datasize=0;
     _attrReg = new RegExp("(\\w+)|([:,;])", "g");
     _shaderAttributes:string[];
+    mesh:Laya_Mesh;
+    _cursubmeshid=0;
     constructor(){
 
     }
-    load(str:string){
-
+    load(str:string,mesh:Laya_Mesh){
+        this.mesh=mesh;
     }
     parse(data:ArrayBuffer):any{
         this.buff=data;
         this.viewer = new DataView(data,0);
-        this._version = this.readString();
+        this.mesh.version=this.readString();
         this.read_BLOCK();
         for( var i=0; i<this.blockCount; i++){
             var idx = this.readU16();
@@ -379,10 +495,13 @@ export class loader_lh{
         var urlidx = this.readU16();
         var shadername = this._strings[stridx];
         var url = this._strings[urlidx];
+        // mesh
+        if(index<0||index>255)throw 'material index error:'+index;
+        this.mesh.materials[index]=url;
     }
     read_MESH(){
         var name = this.getStr(this.readU16());
-        switch(this._version){
+        switch(this.mesh.version){
             case 'LAYASKINANI:01':
                 var bindPoseStart = this.readU32();
                 var binPoseLength = this.readU32();
@@ -391,22 +510,25 @@ export class loader_lh{
                 var invBindPoseStart = this.readU32();
                 var invBindPoseLength = this.readU32();
                 ttt = this.buff.slice(invBindPoseStart+this.dataoffset);
-                var invBindPoseDatas = new Float32Array(ttt, invBindPoseLength);
+                var invBindPoseDatas = new Float32Array(ttt, 0,invBindPoseLength);
+                //mesh
+                this.mesh._bindPoses = bindPoseDatas;
+                this.mesh._inverseBindPoses = invBindPoseDatas;
             break;
             default:
-                alert('wrong version :'+this._version);
+                alert('wrong version :'+this.mesh.version);
             break;
         }
     }
 
     read_SUBMESH(){
         var className = this.getStr(this.readU16());
-        var material = this.readU8();
+        var material = this.readU8();//这个没有用
         var bufferAttribute = this.getStr(this.readU16());
         this._shaderAttributes = bufferAttribute.match(this._attrReg);
         var ibofs = this.readU32();
         var ibsize = this.readU32();
-        var vbIndicesofs = this.readU32();  //Not use?
+        var vbIndicesofs = this.readU32();  //Not use? 骨骼索引?
         var vbIndicessize = this.readU32(); //not use?
         var vbofs = this.readU32();
         var vbsize = this.readU32();
@@ -416,7 +538,6 @@ export class loader_lh{
         //this._getVertexDeclaration();
         var vbStart = vbofs+this.dataoffset;
         var vbBuff = new Float32Array( this.buff.slice(vbStart,vbStart+vbsize));
-
         //TODO ib 可能不从0开始
         //现在是相同格式的合并，但是这样可能会导致错误。
 
@@ -426,9 +547,15 @@ export class loader_lh{
         //bone index
         var bidBuff = new Uint8Array(this.buff.slice(boneDicofs+this.dataoffset,boneDicofs+this.dataoffset+boneDicsize));
 
-        //todo
-        alert(this.readpos);
+        //mesh
+        var sm = this.mesh.submeshes[this._cursubmeshid++]=new Laya_SubMesh();
+        sm.attribs = bufferAttribute;
+        sm._vertexBuffer = vbBuff;
+        sm._indexBuffer=ibBuff;
+        sm._boneindicesBuffer = bidBuff;
     }
+
+    read_DATAAREA(){}
 
     readString():string{
         var l = this.viewer.getUint16(this.readpos,true);
@@ -504,5 +631,10 @@ export class loader_lh{
 
 
 var cc = new loader_lh();
+cc.mesh = new Laya_Mesh();
 var data = fs.readFileSync('e:/layaair/layaair/publish/LayaAirPublish/samples/as/3d/bin/h5/threeDimen/models/1/1-MF000F.lm');
 cc.parse(data.buffer);
+var save = new Laya_Mesh_W();
+save.mesh=cc.mesh;
+save.saveAsLm('kk');
+debugger;
