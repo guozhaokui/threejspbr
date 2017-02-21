@@ -148,9 +148,9 @@ c.attachBuff(bb.buffer,0)
 */
 class Laya_SubMesh{
     attribs='POSITION:3,32,0;NORMAL:3,32,12;UV:2,32,24;'
-    _vertexBuffer;
-    _indexBuffer;
-    _boneindicesBuffer;//uint8
+    _vertexBuffer:Float32Array;
+    _indexBuffer:Uint16Array;
+    _boneindicesBuffer:Uint8Array;//uint8
 }
 
 class Laya_Mesh{
@@ -191,7 +191,7 @@ class Laya_Mesh_W{
     dataOff=0;
     dataSize=0;
     strsOff=0;
-    strsSize=0;
+    strsNum=0; //
     bindPoseOff=0;
     bindPoseSize=0;
     invGBindePoseOff=0;
@@ -247,19 +247,20 @@ class Laya_Mesh_W{
             this.submeshInfo[i]=new _submeshInfo()
         });
 
-        this.nowrite=true;
         //先空跑一下，组装字符表，统计大小
-        this._saveAsLm(null);
+        this.nowrite=true;
+        this._saveAsLm();
         var sz = this._writePos;
         this.buff = new ArrayBuffer(sz);
         this.datav=new DataView(this.buff);
+        //真正写buffer
         this.nowrite=false;
         this._writePos=0;
-        alert(sz);
-        this._saveAsLm(file);
+        this._saveAsLm();
+        fs.writeFileSync(file,new Buffer(new Uint8Array(this.buff)));
     }
 
-    _saveAsLm(file:string){
+    _saveAsLm(){
         this.wstr(this.mesh.version)
         .wu16(0)
         .wu16(5+this.mesh.materials.length+this.mesh.submeshes.length);//chunk count
@@ -267,7 +268,7 @@ class Laya_Mesh_W{
         //0
         //data chunk
         //'DATA'
-        this.wu16(1)//data chunk id
+        this.wstrid('DATA')//data chunk id
         .wu32(this.dataOff)
         .wu32(this.dataSize);
 
@@ -277,16 +278,16 @@ class Laya_Mesh_W{
         //1
         //strings chunk
         //'STRINGS'
-        this.wu16(2) //strings chunk id
+        this.wstrid('STRINGS') //strings chunk id
         .wu16(this.strsOff)
-        .wu16(this.strsSize);
+        .wu16(this.strsNum);
         //把所有的string以wstr的方式写到对应区域
 
         //2
         //material chunk
         //'MATERIAL'
         this.mesh.materials.forEach((mtlname,i)=>{
-            this.wu16(3)   //id
+            this.wstrid('MATERIAL')   //id
             this.wu16(i)   //放到_materials数组的位置
             .wstrid('SIMPLE')//shader name /没有用
             .wstrid(mtlname);//url
@@ -298,7 +299,7 @@ class Laya_Mesh_W{
         //3
         //mesh chunk
         //'MESH'
-        this.wu16(4) //id
+        this.wstrid('MESH') //id
         .wstrid(this.mesh.name) //name
         .wu32(this.bindPoseOff)//bindpose start
         .wu32(this.bindPoseSize)//bindpose size
@@ -312,7 +313,7 @@ class Laya_Mesh_W{
         var materialid=0;
         this.mesh.submeshes.forEach((sm,i)=>{
             var sminfo=this.submeshInfo[i];
-            this.wu16(5)
+            this.wstrid('SUBMESH')
             .wstrid('SUBMESH')
             .wu8(materialid)
             .wstrid('POSITION:3,32,0;NORMAL:3,32,12;UV:2,32,24;')
@@ -331,12 +332,39 @@ class Laya_Mesh_W{
         //DATAAREA
         this.wstrid('DATAAREA');//=6
 
+        this.dataOff=this._writePos;
+        this.strsOff=this._writePos-this.dataOff;
+        this.strsNum=this._strmap.length;
+
         //strings
-        //vb
-        //ib
+        this._strmap.forEach((v)=>{
+            this.wstr(v);
+        });
+
         //pose
+        this.bindPoseOff=this._writePos-this.dataOff;
+        this.bindPoseSize = this.mesh._bindPoses.byteLength;
+        this.wab(this.mesh._bindPoses.buffer,this.mesh._bindPoses.byteLength);
         //invpose
-        //bone index       
+        this.invGBindePoseOff=this._writePos-this.dataOff;
+        this.invGBindePoseSize=this.mesh._inverseBindPoses.byteLength;
+        this.wab(this.mesh._inverseBindPoses.buffer,this.mesh._inverseBindPoses.byteLength);
+
+        this.mesh.submeshes.forEach((sm,i)=>{
+            var sminfo = this.submeshInfo[i];
+            //vb
+            sminfo.vboff=this._writePos-this.dataOff;
+            sminfo.vbsize=sm._vertexBuffer.byteLength;
+            this.wab(sm._vertexBuffer.buffer,sm._vertexBuffer.byteLength);
+            //ib
+            sminfo.iboff=this._writePos-this.dataOff;
+            sminfo.ibsize=sm._indexBuffer.byteLength;
+            this.wab(sm._indexBuffer.buffer,sm._indexBuffer.byteLength);
+            //bone index       
+            sminfo.boneidxoff=this._writePos-this.dataOff;
+            sminfo.boneidxsize=sm._boneindicesBuffer.byteLength;
+            this.wab(sm._boneindicesBuffer.buffer,sm._boneindicesBuffer.byteLength);
+        });
     }
     wstr(str:string):Laya_Mesh_W{
         var strarr = str2Array(str);
@@ -377,7 +405,8 @@ class Laya_Mesh_W{
         this._writePos+=4;
         return this;
     };
-    wab(arraybuffer:ArrayBuffer|DataView, length:number, offset:number) {
+    wab(arraybuffer:ArrayBuffer|DataView, length:number, offset?:number) {
+        if(length==0)return;
         offset = offset ? offset : 0;
         if (length < 0)
             throw "wab error - Out of bounds";
@@ -636,5 +665,5 @@ var data = fs.readFileSync('e:/layaair/layaair/publish/LayaAirPublish/samples/as
 cc.parse(data.buffer);
 var save = new Laya_Mesh_W();
 save.mesh=cc.mesh;
-save.saveAsLm('kk');
+save.saveAsLm('e:/layaair/layaair/publish/LayaAirPublish/samples/as/3d/bin/h5/threeDimen/models/1/1-MF000F2.lm');
 debugger;
