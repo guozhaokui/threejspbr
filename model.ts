@@ -316,7 +316,7 @@ class Laya_Mesh_W{
             this.wstrid('SUBMESH')
             .wstrid('SUBMESH')
             .wu8(materialid)
-            .wstrid('POSITION:3,32,0;NORMAL:3,32,12;UV:2,32,24;')
+            .wstrid(sm.attribs)
             .wu32(sminfo.iboff)//ibofs    都是相对于data的
             .wu32(sminfo.ibsize)//ibsize
             .wu32(0)//vbIndicesofs 不知道干什么的
@@ -428,33 +428,6 @@ class Laya_Mesh_W{
 }
 
 
-
-/*
-    vec3 q0 = dFdx( pos.xyz );
-    vec3 q1 = dFdy( pos.xyz );
-    vec2 st0 = dFdx( vUv );
-    vec2 st1 = dFdy( vUv );
-    //float f1 = 1.0/(st0.y*st1.x-st1.y*st0.x); 由于要normalize，这个系数就不要了
-    vec3 T = normalize(-q0*st1.y+q1*st0.y);
-    vec3 B = normalize(q0*st1.x-q1*st0.x);
-    vec3 N = normalize( surf_norm );
-*/    
-
-function calcTangent( verts:Float32Array, p0:number, p1:number, p2:number, 
-        uv0:number, uv1:number, uv2:number, 
-        normal:number, tangent:number, binormal:number){
-    var dx0=verts[p1]- verts[p0]; var dy0=verts[p1+1]-verts[p0+1]; var dz0 = verts[p1+2]-verts[p0+2];
-    var dx1=verts[p2]- verts[p0]; var dy1=verts[p2+1]-verts[p0+1]; var dz1 = verts[p2+2]-verts[p0+2];
-    var du0=verts[uv1]-verts[uv0]; var dv0 = verts[uv1+1]-verts[uv0+1];
-    var du1=verts[uv2]-verts[uv0]; var dv1 = verts[uv2+1]-verts[uv0+1];
-    var tx = -dx0*dv1+dx1*dv0; var ty = -dy0*dv1+dy1*dv0; var tz = -dz0*dv1+dz1*dv0;
-    var bx = dx0*du1-dx1*du0; var by = dy0*du1-dy1*du0; var bz = dz0*du1-dz1*du0;
-    var tlen = Math.sqrt( tx*tx+ty*ty+tz*tz); if(tlen<1e-5)tlen=0.001;
-    var blen = Math.sqrt( bx*bx+by*by+bz*bz); if(blen<1e-5)blen=0.001;
-    //out
-    verts[tangent]=tx; verts[tangent+1]=ty; verts[tangent+2]=tz;
-    verts[binormal]=bx; verts[binormal+1]=by; verts[binormal+2]=bz;
-}
 /**
  * 问题：现在的格式无法略过不认识的块。
  */
@@ -659,23 +632,200 @@ export class loader_lh{
 }
 
 
+class geo_Vertex{
+    edge:number[]=[];
+    face:number[]=[];
+}
+
+class geo_Edge{
+    v0:number;
+    v1:number;
+}
+class MeshGeo{
+    vb:Float32Array;
+    ib:Uint16Array;
+    vertexnum=0;
+    fstride=0;
+    attrib:string;
+    //faces:geo_Face[]; face直接用ib即可
+    uvfoff=0;//uv在floatarray的偏移。不是byte，是float
+    vertexes:geo_Vertex[];
+    edges:geo_Edge[];
+    tmpMem=new Float32Array(32);
+    tmpMem1=new Float32Array(32);
+    constructor(vb:Float32Array, ib:Uint16Array, fstride:number, uvoff:number, attrib:string){
+        this.vb=vb;
+        this.ib=ib;
+        this.fstride=fstride;
+        this.attrib=attrib;
+        this.uvfoff=uvoff;
+        this.vertexnum = vb.length/fstride;
+        this.gatherInfo();
+    }
+
+    gatherInfo(){
+        this.vertexes = new Array<geo_Vertex>(this.vertexnum).fill(new geo_Vertex());
+        this.vertexes.forEach((v,i)=>{
+            v = this.vertexes[i]=new geo_Vertex();//每个都要是不同的实例。
+            var st=0;
+            while(true){
+                var vpos = this.ib.indexOf(i,st);
+                if(vpos>=0){
+                    st=vpos+1;
+                    var fid = Math.floor(vpos/3);
+                    if(v.face.indexOf(fid)<0){
+                        v.face.push(fid);
+                    }
+                }
+                else{
+                    break;
+                }
+            }
+        });
+    }
+
+    /*
+        vec3 q0 = dFdx( pos.xyz );
+        vec3 q1 = dFdy( pos.xyz );
+        vec2 st0 = dFdx( vUv );
+        vec2 st1 = dFdy( vUv );
+        //float f1 = 1.0/(st0.y*st1.x-st1.y*st0.x); 由于要normalize，这个系数就不要了
+        vec3 T = normalize(-q0*st1.y+q1*st0.y);
+        vec3 B = normalize(q0*st1.x-q1*st0.x);
+        vec3 N = normalize( surf_norm );
+    */    
+
+    _calcTangent( verts:Float32Array, p0:number, p1:number, p2:number, 
+            uv0:number, uv1:number, uv2:number, 
+            normal:number, 
+            outverts:Float32Array,
+            tangent:number, binormal:number){
+        var dx0=verts[p1]- verts[p0]; var dy0=verts[p1+1]-verts[p0+1]; var dz0 = verts[p1+2]-verts[p0+2];
+        var dx1=verts[p2]- verts[p0]; var dy1=verts[p2+1]-verts[p0+1]; var dz1 = verts[p2+2]-verts[p0+2];
+        var du0=verts[uv1]-verts[uv0]; var dv0 = verts[uv1+1]-verts[uv0+1];
+        var du1=verts[uv2]-verts[uv0]; var dv1 = verts[uv2+1]-verts[uv0+1];
+        var tx = -dx0*dv1+dx1*dv0; var ty = -dy0*dv1+dy1*dv0; var tz = -dz0*dv1+dz1*dv0;
+        var bx = dx0*du1-dx1*du0; var by = dy0*du1-dy1*du0; var bz = dz0*du1-dz1*du0;
+        var tlen = Math.sqrt( tx*tx+ty*ty+tz*tz); if(tlen<1e-5)tlen=0.001;
+        var blen = Math.sqrt( bx*bx+by*by+bz*bz); if(blen<1e-5)blen=0.001;
+        //out
+        outverts[tangent]=tx/tlen; outverts[tangent+1]=ty/tlen; outverts[tangent+2]=tz/tlen;
+        outverts[binormal]=bx/blen; outverts[binormal+1]=by/blen; outverts[binormal+2]=bz/blen;
+    }
+
+    vec3_cross(vb:Float32Array, v0:number, v1:number){
+        var ax = vb[v0], ay=vb[v0+1], az=vb[v0+2];
+        var bx = vb[v1], by=vb[v1+1], bz=vb[v1+2];
+        this.tmpMem[0] = ay * bz - az * by;
+        this.tmpMem[1] = az * bx - ax * bz;
+        this.tmpMem[2] = ax * by - ay * bx;
+    }
+
+    vec3_length(vb:Float32Array, v0:number){
+        var x = vb[v0];
+        var y = vb[v0+1];
+        var z = vb[v0+2];
+        var l = x*x+y*y+z*z;
+        return Math.sqrt(l);
+    }
+
+    vec3_normalize(vb:Float32Array, v0){
+        var l = this.vec3_length(vb,v0);
+        vb[v0]/=l;
+        vb[v0+1]/=l;
+        vb[v0+2]/=l;
+    }
+
+    vec3_copy(vbo:Float32Array, v1:number, vb:Float32Array, v0:number ){
+        vbo[v1]=vb[v0];
+        vbo[v1+1]=vb[v0+1];
+        vbo[v1+2]=vb[v0+2];
+    }
+
+    /**
+     * 返回tangent和binormal
+     */
+    calcTangent(){
+        var ret={tan:new Float32Array(this.vertexnum*3), binor:new Float32Array(this.vertexnum*3)};
+        this.vertexes.forEach((v,i)=>{
+            var sum=0;
+            var outarr = new Float32Array(6).fill(0);
+            v.face.forEach((ef)=>{
+                var cout = new Float32Array(6);
+                var v0=this.ib[ef*3];
+                var v1=this.ib[ef*3+1];
+                var v2=this.ib[ef*3+2];
+                var v0p = v0*this.fstride;
+                var v1p = v1*this.fstride;
+                var v2p = v2*this.fstride;
+                this._calcTangent(this.vb,
+                    v0p, v1p,v2p,
+                    v0p+this.uvfoff, v1p+this.uvfoff,v2p+this.uvfoff,
+                    null,cout,0,3);
+                var dbuff = this.tmpMem1;
+                dbuff[0]=this.vb[v1p]-this.vb[v0p];//dx
+                dbuff[1]=this.vb[v1p+1]-this.vb[v0p+1];//dy
+                dbuff[2]=this.vb[v1p+2]-this.vb[v0p+2];//dz
+
+                dbuff[3]=this.vb[v2p]-this.vb[v0p];//dx1
+                dbuff[4]=this.vb[v2p+1]-this.vb[v0p+1];//dy1
+                dbuff[5]=this.vb[v2p+2]-this.vb[v0p+2];//dz1
+                this.vec3_cross(dbuff,0,3);
+                var l = this.vec3_length(this.tmpMem,0);
+                for(var oi=0; oi<6; oi++){
+                    outarr[oi]+=cout[oi]*l;
+                }
+                sum+=l;
+            });
+            for(var oi=0; oi<6; oi++){
+                outarr[oi]=outarr[oi]/sum;
+            }
+            this.vec3_normalize(outarr,0);
+            this.vec3_normalize(outarr,3);
+            this.vec3_copy(ret.tan,i*3, outarr,0);
+            this.vec3_copy(ret.binor,i*3, outarr,3);
+        });
+        return ret;
+    }
+}
+
 var cc = new loader_lh();
 cc.mesh = new Laya_Mesh();
-var data = fs.readFileSync('e:/layaair/layaair/publish/LayaAirPublish/samples/as/3d/bin/h5/threeDimen/models/1/orilm/1-MF000.lm');
+var data = fs.readFileSync('e:/layaair/layaair/publish/LayaAirPublish/samples/as/3d/bin/h5/threeDimen/models/1/orilm/1-MF000_2.lm');
 cc.parse(data.buffer);
 
 function handlelm(mesh:Laya_Mesh){
     mesh.materials.forEach((mtl,i)=>{
-        mesh.materials[i]='body.lpbr';//mtl.replace('.lmat','.lpbr');
+        mesh.materials[i]='cloth.lpbr';//mtl.replace('.lmat','.lpbr');
         console.log(mesh.materials[i]);
     });
     mesh.submeshes.forEach((sm)=>{
+        var oldstride = 32;
+        var oldfstride=oldstride/4;
+        sm.attribs='POSITION:3,32,0;NORMAL:3,32,12;TANGENT:3,32,24;BINORMAL:3,32,36;UV:2,32,48;';
+        //sm.attribs='POSITION:3,32,0;NORMAL:3,32,12;UV:2,32,24;';
+        var newstride = 56;
+        var newfstride=newstride/4;
+        var oldvb = sm._vertexBuffer;
+        var vertnum = sm._vertexBuffer.byteLength/oldstride;
+        //计算tangent
+        var mg = new MeshGeo(oldvb,sm._indexBuffer,oldfstride,6,'');
+        var tb = mg.calcTangent();
         
+        var vb = sm._vertexBuffer = new Float32Array(vertnum*newfstride);
+        var coldi=0, cnewi=0;
+        for( var i=0; i<vertnum; i++){
+            vb[cnewi++]=oldvb[coldi++];vb[cnewi++]=oldvb[coldi++];vb[cnewi++]=oldvb[coldi++];//pos
+            vb[cnewi++]=oldvb[coldi++];vb[cnewi++]=oldvb[coldi++];vb[cnewi++]=oldvb[coldi++];//normal
+            vb[cnewi++]=tb.tan[i*3];vb[cnewi++]=tb.tan[i*3+1];vb[cnewi++]=tb.tan[i*3+2];//tan
+            vb[cnewi++]=tb.binor[i*3];vb[cnewi++]=tb.binor[i*3+1];vb[cnewi++]=tb.binor[i*3+2];//bin
+            vb[cnewi++]=oldvb[coldi++];vb[cnewi++]=oldvb[coldi++];//uv
+        }
     });
 }
 handlelm(cc.mesh);
 
 var save = new Laya_Mesh_W();
 save.mesh=cc.mesh;
-save.saveAsLm('e:/layaair/layaair/publish/LayaAirPublish/samples/as/3d/bin/h5/threeDimen/models/1/body.lm');
+save.saveAsLm('e:/layaair/layaair/publish/LayaAirPublish/samples/as/3d/bin/h5/threeDimen/models/1/cloth.lm');
 debugger;
