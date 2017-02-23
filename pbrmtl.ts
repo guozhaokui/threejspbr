@@ -113,6 +113,7 @@ export class MapLoader{
                     var env = 'overcloud';
                     this.allfiles[0]=[
                         './assets/imgs/pbrlut.raw',
+                        path+env+'/env.mipmaps',
                         path+env+'/env_0.hdr.raw',
                         path+env+'/env_1.hdr.raw',
                         path+env+'/env_2.hdr.raw',
@@ -267,6 +268,29 @@ export class MapLoader{
         return {width:w,height:h,data:dt1};
     }
 
+    createMipmaps(Buff:ArrayBuffer):{width:number,height:number,data:Uint8Array}[]{
+        var ret:{width:number,height:number,data:Uint8Array}[]=[];
+        var dv = new DataView(Buff);
+        var w = dv.getUint32(0,true);
+        var h = dv.getUint32(4,true);
+        var st=8;
+        while(true){
+            var sz = w*h*4;
+            var dt = new Uint8Array(Buff,st,sz);
+            st+=sz;
+            ret.push({width:w,height:h,data:dt});
+            if(w==1 && h==1){
+                break;
+            }
+            w/=2;
+            h/=2;
+            if(w<1)w=1;
+            if(h<1)h=1;
+        }
+        debugger;
+        return ret;
+    }
+
     createColorImg(w:number, h:number, col:number){
         var num = w*h;
         var dt = new Uint32Array(num);
@@ -289,6 +313,7 @@ export class MapLoader{
         var dt1 = null;// new Uint8Array(dd.buffer.slice(8));
         this.texenv = new THREE.DataTexture(dt1,2048,1024,THREE.RGBAFormat,THREE.UnsignedByteType,THREE.Texture.DEFAULT_MAPPING,
             THREE.RepeatWrapping, THREE.ClampToEdgeWrapping,THREE.LinearFilter,THREE.LinearMipMapLinearFilter);
+        var mipmaps = this.createMipmaps( THREE.Cache.get(p+'env.mipmaps'));
 
         var mip0 = this.createImgDataFromRaw( THREE.Cache.get(p+'env_0.hdr.raw') as ArrayBuffer); 
         var mip1 = this.createImgDataFromRaw( THREE.Cache.get( p+'env_1.hdr.raw') as ArrayBuffer);
@@ -304,9 +329,12 @@ export class MapLoader{
         //TODO 如果不提供1x1的mipmap，就无法使用 LinearMipMapLinearFilter 。所以先凑一个，实际使用的时候，不要选择这个。
         var mip11 = {width:1,height:1,data:new Uint8Array(mip10.data.buffer,0,4)};
 
+        
         (this.texenv as any).mipmaps =[
             mip0,mip1,mip2,mip3,mip4,mip5,mip6,mip7,mip8,mip9, mip10,mip11
         ];
+        
+        (this.texenv as any).mipmaps = mipmaps;
         this.texenv.needsUpdate=true;
 
         this.texenvdiff = this.texloader.load(p+'/envdiff.png');
