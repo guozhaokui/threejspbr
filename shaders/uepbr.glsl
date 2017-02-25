@@ -73,17 +73,16 @@ vec3 perturbNormal2Arb( vec3 pos, vec3 surf_norm ) {
  * 对一个全景图进行采样。假设x轴指向中心。
  */
 void texPanorama(sampler2D tex, const in vec3 dir, out vec4 rgba){
-    float u = atan(-dir.z,dir.x)/_2PI+0.5;  //逆时针增加，所以z取负
-    float v = asin(dir.y)/PI+0.5;
-    //rgba = texture2D(tex, vec2(u,v));
-    rgba = texture(tex, vec2(u,1.-v));
+    float u = atan(dir.z,dir.x)/_2PI+0.5;  
+    float v = acos(dir.y)/PI;
+    rgba = texture(tex, vec2(u,v));
 }
 
 
 void texPanoramaLod(sampler2D tex, const in vec3 dir, out vec4 rgba, float lod){
-    float u = atan(-dir.z,dir.x)/_2PI+0.5;  //逆时针增加，所以z取负
-    float v = asin(dir.y)/PI+0.5;
-    v = 1.-v;
+    lod=5.;
+    float u = atan(dir.z,dir.x)/_2PI+0.5;  
+    float v = acos(dir.y)/PI;
 
     float l0 = floor(lod);
     float l1 = l0+1.0;
@@ -96,7 +95,7 @@ void texPanoramaLod(sampler2D tex, const in vec3 dir, out vec4 rgba, float lod){
 
 vec3 ApproximateSpecularIBL( vec3 SpecularColor , float Roughness , float NoV, vec3 R){
     vec4 PrefilteredColor;
-    texPanoramaLod(texPrefilterdEnv, R, PrefilteredColor, Roughness*14.0);
+    texPanoramaLod(texPrefilterdEnv, R, PrefilteredColor, Roughness*10.0);
     PrefilteredColor.rgb = _RGBEToRGB(PrefilteredColor);
     vec4 EnvBRDF = texture(texBRDFLUT,vec2(Roughness , NoV));//TODO lod
     vec2 rg = _RGBAToU16(EnvBRDF);    

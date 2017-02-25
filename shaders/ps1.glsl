@@ -53,7 +53,7 @@ float saturate(float v){
  * 对一个全景图进行采样。假设x轴指向中心。
  */
 void texPanorama(sampler2D tex, const in vec3 dir, out vec4 rgba){
-    float u = atan(-dir.z,dir.x)/_2PI+0.5;  //逆时针增加，所以z取负
+    float u = atan(-dir.z,dir.x)/_2PI+0.5;  //逆时针增加，所以z取负       //TODO 这里好像不对。参考uepbr.glsl中的 
     float v = asin(dir.y)/PI+0.5;
     //rgba = texture2D(tex, vec2(u,v));
     #ifdef USEPRETEX
@@ -89,7 +89,7 @@ void main (void)
 }
 */
 void texPanoramaLod(sampler2D tex, const in vec3 dir, out vec4 rgba, float lod){
-    float u = atan(-dir.z,dir.x)/_2PI+0.5;  //逆时针增加，所以z取负
+    float u = atan(-dir.z,dir.x)/_2PI+0.5;  //逆时针增加，所以z取负 //TODO 这里好像不对。参考uepbr.glsl中的 
     float v = asin(dir.y)/PI+0.5;
     #ifdef USEPRETEX
     v = 1.-v;

@@ -791,12 +791,13 @@ class MeshGeo{
 
 var cc = new loader_lh();
 cc.mesh = new Laya_Mesh();
-var data = fs.readFileSync('e:/layaair/layaair/publish/LayaAirPublish/samples/as/3d/bin/h5/threeDimen/models/1/orilm/1-MF000_2.lm');
+var data = fs.readFileSync('e:/layaair/layaair/publish/LayaAirPublish/samples/as/3d/bin/h5/threeDimen/models/1/orilm/1-MF000.lm');
 cc.parse(data.buffer);
 
 function handlelm(mesh:Laya_Mesh){
+    mesh.version = 'LAYAMODEL:02';
     mesh.materials.forEach((mtl,i)=>{
-        mesh.materials[i]='cloth.lpbr';//mtl.replace('.lmat','.lpbr');
+        mesh.materials[i]='body.lpbr';//mtl.replace('.lmat','.lpbr');
         console.log(mesh.materials[i]);
     });
     mesh.submeshes.forEach((sm)=>{
@@ -827,5 +828,15 @@ handlelm(cc.mesh);
 
 var save = new Laya_Mesh_W();
 save.mesh=cc.mesh;
-save.saveAsLm('e:/layaair/layaair/publish/LayaAirPublish/samples/as/3d/bin/h5/threeDimen/models/1/cloth.lm');
-debugger;
+save.saveAsLm('e:/layaair/layaair/publish/LayaAirPublish/samples/as/3d/bin/h5/threeDimen/models/1/body.lm');
+/*
+var buf1 =fs.readFileSync('F:/work/pbr/threejspbr/assets/imgs/pbrlut.raw');
+var dt1 = new Uint32Array( new Uint8Array(buf1).buffer);
+var outdt = '__pbrlutdata = [';
+dt1.forEach((v)=>{
+    outdt+=('0x'+v.toString(16))+',';
+});
+outdt.substr(0,outdt.length-1);
+outdt+='];'
+fs.writeFileSync('F:/work/pbr/threejspbr/assets/imgs/pbrlut.txt',outdt,'utf8');
+*/
