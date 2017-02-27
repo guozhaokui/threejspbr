@@ -706,11 +706,23 @@ class MeshGeo{
         var du1=verts[uv2]-verts[uv0]; var dv1 = verts[uv2+1]-verts[uv0+1];
         var tx = -dx0*dv1+dx1*dv0; var ty = -dy0*dv1+dy1*dv0; var tz = -dz0*dv1+dz1*dv0;
         var bx = dx0*du1-dx1*du0; var by = dy0*du1-dy1*du0; var bz = dz0*du1-dz1*du0;
-        var tlen = Math.sqrt( tx*tx+ty*ty+tz*tz); if(tlen<1e-5)tlen=0.001;
-        var blen = Math.sqrt( bx*bx+by*by+bz*bz); if(blen<1e-5)blen=0.001;
+        var tlen = Math.sqrt( tx*tx+ty*ty+tz*tz);
+        var blen = Math.sqrt( bx*bx+by*by+bz*bz);
         //out
-        outverts[tangent]=tx/tlen; outverts[tangent+1]=ty/tlen; outverts[tangent+2]=tz/tlen;
-        outverts[binormal]=bx/blen; outverts[binormal+1]=by/blen; outverts[binormal+2]=bz/blen;
+        if(tlen<1e-5){
+            outverts[tangent]=0; outverts[tangent+1]=0; outverts[tangent+2]=0;
+            return false;
+        }else{
+            outverts[tangent]=tx/tlen; outverts[tangent+1]=ty/tlen; outverts[tangent+2]=tz/tlen;
+        }
+
+        if(blen<1e-5){
+            outverts[binormal]=0; outverts[binormal+1]=0; outverts[binormal+2]=0;
+            return false;
+        }else{
+            outverts[binormal]=bx/blen; outverts[binormal+1]=by/blen; outverts[binormal+2]=bz/blen;
+        }
+        return true;
     }
 
     vec3_cross(vb:Float32Array, v0:number, v1:number){
@@ -731,6 +743,13 @@ class MeshGeo{
 
     vec3_normalize(vb:Float32Array, v0){
         var l = this.vec3_length(vb,v0);
+        if(l<1e-5){
+            //debugger;
+            vb[v0]=0;
+            vb[v0+1]=0;
+            vb[v0+2]=0;
+            return;
+        }
         vb[v0]/=l;
         vb[v0+1]/=l;
         vb[v0+2]/=l;
@@ -748,26 +767,37 @@ class MeshGeo{
     calcTangent(){
         var ret={tan:new Float32Array(this.vertexnum*3), binor:new Float32Array(this.vertexnum*3)};
         this.vertexes.forEach((v,i)=>{
+            if(i==2134){
+                
+            }
             var sum=0;
+            //
             var outarr = new Float32Array(6).fill(0);
-            v.face.forEach((ef)=>{
+            v.face.forEach((ef,fi)=>{
                 var cout = new Float32Array(6);
                 var v0=this.ib[ef*3];
                 var v1=this.ib[ef*3+1];
                 var v2=this.ib[ef*3+2];
+                if(v1==i){
+                    [v0,v1]=[v1,v0];
+                }
+                else if(v2==i){
+                    [v0,v2]=[v2,v0];
+                }
                 var v0p = v0*this.fstride;
                 var v1p = v1*this.fstride;
                 var v2p = v2*this.fstride;
-                this._calcTangent(this.vb,
+                if(!this._calcTangent(this.vb,
                     v0p, v1p,v2p,
                     v0p+this.uvfoff, v1p+this.uvfoff,v2p+this.uvfoff,
-                    null,cout,0,3);
+                    null,cout,0,3))
+                    return ;
                 var dbuff = this.tmpMem1;
-                dbuff[0]=this.vb[v1p]-this.vb[v0p];//dx
+                dbuff[0]=this.vb[v1p  ]-this.vb[v0p  ];//dx
                 dbuff[1]=this.vb[v1p+1]-this.vb[v0p+1];//dy
                 dbuff[2]=this.vb[v1p+2]-this.vb[v0p+2];//dz
 
-                dbuff[3]=this.vb[v2p]-this.vb[v0p];//dx1
+                dbuff[3]=this.vb[v2p  ]-this.vb[v0p  ];//dx1
                 dbuff[4]=this.vb[v2p+1]-this.vb[v0p+1];//dy1
                 dbuff[5]=this.vb[v2p+2]-this.vb[v0p+2];//dz1
                 this.vec3_cross(dbuff,0,3);
@@ -777,11 +807,16 @@ class MeshGeo{
                 }
                 sum+=l;
             });
+            /*
             for(var oi=0; oi<6; oi++){
                 outarr[oi]=outarr[oi]/sum;
             }
+            */
             this.vec3_normalize(outarr,0);
             this.vec3_normalize(outarr,3);
+            if(i>=2100 && i<2200){
+                outarr.fill(0);
+            }
             this.vec3_copy(ret.tan,i*3, outarr,0);
             this.vec3_copy(ret.binor,i*3, outarr,3);
         });
