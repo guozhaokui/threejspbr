@@ -60,12 +60,22 @@ vec3 perturbNormal2Arb( vec3 pos, vec3 surf_norm ) {
     vec2 st0 = dFdx( vUv );
     vec2 st1 = dFdy( vUv );
     //float f1 = 1.0/(st0.y*st1.x-st1.y*st0.x); 由于要normalize，这个系数就不要了
-    vec3 T = normalize(-q0*st1.y+q1*st0.y);
-    vec3 B = normalize(q0*st1.x-q1*st0.x);
+    vec3 T = normalize(q0*st1.y-q1*st0.y);
+    vec3 B = normalize(-q0*st1.x+q1*st0.x);
     vec3 N = normalize( surf_norm );
+    /*
+    vec3 X = cross(N,T);
+    T = normalize(cross(X,N));
+    X = cross(B,N);
+    B = normalize(cross(N,X));
+    */
+    if(dot(cross(T,B),N)<0.){
+        B=-B;
+        T=-T;
+    }
     vec3 mapN = texture( texNormal, vUv ).xyz * 2.0 - 1.0;
     mapN.xy = normalScale * mapN.xy;
-    mat3 tsn = mat3( B, T, N );  //注意调整T,B的顺序
+    mat3 tsn = mat3( T,B, N );
     return normalize( tsn * mapN );
 }
 
@@ -137,7 +147,7 @@ void main() {
     const vec3 nonmetalF0 =vec3(0.2);
     vec3 F0 =  mix(nonmetalF0, basecolor.rgb, pbrinfo.b);
     vec3 color_spec = ApproximateSpecularIBL(F0,pbrinfo.g, NoV, R);
-    vec3 color_diff=testDiff(smoothnorm);
+    vec3 color_diff=testDiff(normal);
     fragColor.rgb = color_diff*mix(basecolor.rgb,vec3(0,0,0),pbrinfo.b)+color_spec;
     fragColor.a = 1.0;
 }

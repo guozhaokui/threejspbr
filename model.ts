@@ -649,10 +649,12 @@ class MeshGeo{
     attrib:string;
     //faces:geo_Face[]; face直接用ib即可
     uvfoff=0;//uv在floatarray的偏移。不是byte，是float
+    normoff=3;
     vertexes:geo_Vertex[];
     edges:geo_Edge[];
     tmpMem=new Float32Array(32);
     tmpMem1=new Float32Array(32);
+    TB = new Float32Array(6);
     constructor(vb:Float32Array, ib:Uint16Array, fstride:number, uvoff:number, attrib:string){
         this.vb=vb;
         this.ib=ib;
@@ -684,44 +686,32 @@ class MeshGeo{
         });
     }
 
-    /*
-        vec3 q0 = dFdx( pos.xyz );
-        vec3 q1 = dFdy( pos.xyz );
-        vec2 st0 = dFdx( vUv );
-        vec2 st1 = dFdy( vUv );
-        //float f1 = 1.0/(st0.y*st1.x-st1.y*st0.x); 由于要normalize，这个系数就不要了
-        vec3 T = normalize(-q0*st1.y+q1*st0.y);
-        vec3 B = normalize(q0*st1.x-q1*st0.x);
-        vec3 N = normalize( surf_norm );
-    */    
 
     _calcTangent( verts:Float32Array, p0:number, p1:number, p2:number, 
             uv0:number, uv1:number, uv2:number, 
             normal:number, 
             outverts:Float32Array,
             tangent:number, binormal:number){
+        this.TB.fill(0);
+        var tb=this.TB;        
         var dx0=verts[p1]- verts[p0]; var dy0=verts[p1+1]-verts[p0+1]; var dz0 = verts[p1+2]-verts[p0+2];
         var dx1=verts[p2]- verts[p0]; var dy1=verts[p2+1]-verts[p0+1]; var dz1 = verts[p2+2]-verts[p0+2];
         var du0=verts[uv1]-verts[uv0]; var dv0 = verts[uv1+1]-verts[uv0+1];
         var du1=verts[uv2]-verts[uv0]; var dv1 = verts[uv2+1]-verts[uv0+1];
-        var tx = -dx0*dv1+dx1*dv0; var ty = -dy0*dv1+dy1*dv0; var tz = -dz0*dv1+dz1*dv0;
-        var bx = dx0*du1-dx1*du0; var by = dy0*du1-dy1*du0; var bz = dz0*du1-dz1*du0;
-        var tlen = Math.sqrt( tx*tx+ty*ty+tz*tz);
-        var blen = Math.sqrt( bx*bx+by*by+bz*bz);
-        //out
-        if(tlen<1e-5){
-            outverts[tangent]=0; outverts[tangent+1]=0; outverts[tangent+2]=0;
-            return false;
-        }else{
-            outverts[tangent]=tx/tlen; outverts[tangent+1]=ty/tlen; outverts[tangent+2]=tz/tlen;
+        tb[0] = dx0*dv1-dx1*dv0; tb[1] = dy0*dv1-dy1*dv0; tb[2] = dz0*dv1-dz1*dv0;
+        tb[3] = -dx0*du1+dx1*du0; tb[4] = -dy0*du1+dy1*du0; tb[5] = -dz0*du1+dz1*du0;    //B = -B 
+
+        this.vec3_normalize(tb,0);
+        this.vec3_normalize(tb,3);
+
+        this.vec3_cross(tb,0,3);
+        var tdb = this.tmpMem[0]*verts[normal] + this.tmpMem[1]*verts[normal+1] + this.tmpMem[2]*verts[normal+2];
+        if(tdb<0.0){
+            tb.forEach((v,i)=>{tb[i]=-tb[i];});
         }
 
-        if(blen<1e-5){
-            outverts[binormal]=0; outverts[binormal+1]=0; outverts[binormal+2]=0;
-            return false;
-        }else{
-            outverts[binormal]=bx/blen; outverts[binormal+1]=by/blen; outverts[binormal+2]=bz/blen;
-        }
+        outverts[tangent]=tb[0]; outverts[tangent+1]=tb[1]; outverts[tangent+2]=tb[2];
+        outverts[binormal]=tb[3]; outverts[binormal+1]=tb[4]; outverts[binormal+2]=tb[5];
         return true;
     }
 
@@ -767,9 +757,6 @@ class MeshGeo{
     calcTangent(){
         var ret={tan:new Float32Array(this.vertexnum*3), binor:new Float32Array(this.vertexnum*3)};
         this.vertexes.forEach((v,i)=>{
-            if(i==2134){
-                
-            }
             var sum=0;
             //
             var outarr = new Float32Array(6).fill(0);
@@ -778,19 +765,21 @@ class MeshGeo{
                 var v0=this.ib[ef*3];
                 var v1=this.ib[ef*3+1];
                 var v2=this.ib[ef*3+2];
+                /* 加上这个效果就全错了
                 if(v1==i){
                     [v0,v1]=[v1,v0];
                 }
                 else if(v2==i){
                     [v0,v2]=[v2,v0];
                 }
+                */
                 var v0p = v0*this.fstride;
                 var v1p = v1*this.fstride;
                 var v2p = v2*this.fstride;
                 if(!this._calcTangent(this.vb,
                     v0p, v1p,v2p,
                     v0p+this.uvfoff, v1p+this.uvfoff,v2p+this.uvfoff,
-                    null,cout,0,3))
+                    this.normoff,cout,0,3))
                     return ;
                 var dbuff = this.tmpMem1;
                 dbuff[0]=this.vb[v1p  ]-this.vb[v0p  ];//dx
@@ -826,13 +815,13 @@ class MeshGeo{
 
 var cc = new loader_lh();
 cc.mesh = new Laya_Mesh();
-var data = fs.readFileSync('e:/layaair/layaair/publish/LayaAirPublish/samples/as/3d/bin/h5/threeDimen/models/1/orilm/1-MF000.lm');
+var data = fs.readFileSync('e:/layaair/layaair/publish/LayaAirPublish/samples/as/3d/bin/h5/threeDimen/models/1/orilm/1-MF000F.lm');
 cc.parse(data.buffer);
 
 function handlelm(mesh:Laya_Mesh){
     mesh.version = 'LAYAMODEL:02';
     mesh.materials.forEach((mtl,i)=>{
-        mesh.materials[i]='body.lpbr';//mtl.replace('.lmat','.lpbr');
+        mesh.materials[i]='face.lpbr';//mtl.replace('.lmat','.lpbr');
         console.log(mesh.materials[i]);
     });
     mesh.submeshes.forEach((sm)=>{
@@ -863,7 +852,7 @@ handlelm(cc.mesh);
 
 var save = new Laya_Mesh_W();
 save.mesh=cc.mesh;
-save.saveAsLm('e:/layaair/layaair/publish/LayaAirPublish/samples/as/3d/bin/h5/threeDimen/models/1/body.lm');
+save.saveAsLm('e:/layaair/layaair/publish/LayaAirPublish/samples/as/3d/bin/h5/threeDimen/models/1/face.lm');
 /*
 var buf1 =fs.readFileSync('F:/work/pbr/threejspbr/assets/imgs/pbrlut.raw');
 var dt1 = new Uint32Array( new Uint8Array(buf1).buffer);
