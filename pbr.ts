@@ -95,6 +95,13 @@ function createImgDataFromRaw(Buff:Buffer){
     */
 }
 
+function createDbgImgData(w:number,h:number,color:number){
+    var buf = new Uint8Array(w*h*4);
+    var u32buf = new Uint32Array(buf.buffer);
+    u32buf.fill(color);
+    return {width:w,height:h,data:buf};
+}
+
 function createColorImg(w:number, h:number, col:number){
     var num = w*h;
     var dt = new Uint32Array(num);
@@ -111,31 +118,30 @@ function loadEnv(env:string):THREE.Texture{
     var dd = fs.readFileSync( p+'env_0.hdr.raw');
 
     var dt1 = null;// new Uint8Array(dd.buffer.slice(8));
-    var texenv = new THREE.DataTexture(dt1,2048,1024,THREE.RGBAFormat,THREE.UnsignedByteType,THREE.Texture.DEFAULT_MAPPING,
-        THREE.RepeatWrapping, THREE.ClampToEdgeWrapping,THREE.LinearFilter,THREE.LinearMipMapLinearFilter);
+    var texenv = new THREE.DataTexture(dt1,1024,512,THREE.RGBAFormat,THREE.UnsignedByteType,THREE.Texture.DEFAULT_MAPPING,
+        THREE.RepeatWrapping, THREE.RepeatWrapping,THREE.LinearFilter,THREE.LinearMipMapLinearFilter);
 
     //var texenv = loader.load( p+'env_0.hdr.png',tex=>{
     //    tex.minFilter = THREE.LinearMipMapLinearFilter;
     //});
-    var mip0 = createImgDataFromRaw( fs.readFileSync( p+'env_0.hdr.raw')); 
-    var mip1 = createImgDataFromRaw( fs.readFileSync( p+'env_1.hdr.raw'));
-    var mip2 = createImgDataFromRaw( fs.readFileSync( p+'env_2.hdr.raw'));
-    var mip3 = createImgDataFromRaw( fs.readFileSync( p+'env_3.hdr.raw'));
-    var mip4 = createImgDataFromRaw( fs.readFileSync( p+'env_4.hdr.raw'));
-    var mip5 = createImgDataFromRaw( fs.readFileSync( p+'env_5.hdr.raw'));
-    var mip6 = createImgDataFromRaw( fs.readFileSync( p+'env_6.hdr.raw'));
-    var mip7 = createImgDataFromRaw( fs.readFileSync( p+'env_7.hdr.raw'));
-    var mip8 = createImgDataFromRaw( fs.readFileSync( p+'env_8.hdr.raw'));
-    var mip9 = createImgDataFromRaw( fs.readFileSync( p+'env_9.hdr.raw'));
-    var mip10 = createImgDataFromRaw( fs.readFileSync( p+'env_10.hdr.raw'));
+    var mip0 = createDbgImgData(1024,512,0xff0000ff);//createImgDataFromRaw( fs.readFileSync( p+'env_0.hdr.raw'));  //
+    var mip1 = createDbgImgData(512,256,0xff0080ff); //createImgDataFromRaw( fs.readFileSync( p+'env_1.hdr.raw'));  //
+    var mip2 = createDbgImgData(256,128,0xff00ffff); //createImgDataFromRaw( fs.readFileSync( p+'env_2.hdr.raw'));  //
+    var mip3 = createDbgImgData(128,64,0xff00ff00);  //createImgDataFromRaw( fs.readFileSync( p+'env_3.hdr.raw'));  //
+    var mip4 = createDbgImgData(64,32,0xff804000);   //createImgDataFromRaw( fs.readFileSync( p+'env_4.hdr.raw'));  //
+    var mip5 = createDbgImgData(32,16,0xffff0000);   //createImgDataFromRaw( fs.readFileSync( p+'env_5.hdr.raw'));  //
+    var mip6 = createDbgImgData(16,8,0xffff0080);    //createImgDataFromRaw( fs.readFileSync( p+'env_6.hdr.raw'));  //
+    var mip7 = createDbgImgData(8,4,0x0);            //createImgDataFromRaw( fs.readFileSync( p+'env_7.hdr.raw'));  //
+    var mip8 = createDbgImgData(4,2,0xff808080);     //createImgDataFromRaw( fs.readFileSync( p+'env_8.hdr.raw'));  //
+    var mip9 = createDbgImgData(2,1,0xffffffff);     //createImgDataFromRaw( fs.readFileSync( p+'env_9.hdr.raw'));  //
+    var mip10 = createDbgImgData(1,1,0xff8080ff);    //createImgDataFromRaw( fs.readFileSync( p+'env_10.hdr.raw'));  //  
     //TODO 如果不提供1x1的mipmap，就无法使用 LinearMipMapLinearFilter 。所以先凑一个，实际使用的时候，不要选择这个。
     var mip11 = {width:1,height:1,data:new Uint8Array(mip10.data.buffer,0,4)};
 
     (texenv as any).mipmaps =[
         mip0,
         mip1,mip2,mip3,mip4,mip5,mip6,mip7,mip8,mip9,
-        mip10,//createColorImg(2,1,0xff0000),
-        mip11
+        mip10//createColorImg(2,1,0xff0000),
     ];
     texenv.needsUpdate=true;
     return texenv;

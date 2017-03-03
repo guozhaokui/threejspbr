@@ -89,14 +89,17 @@ void main (void)
 }
 */
 void texPanoramaLod(sampler2D tex, const in vec3 dir, out vec4 rgba, float lod){
-    float u = atan(-dir.z,dir.x)/_2PI+0.5;  //逆时针增加，所以z取负 //TODO 这里好像不对。参考uepbr.glsl中的 
-    float v = asin(dir.y)/PI+0.5;
+    vec2 uv = vec2( atan(-dir.z,dir.x)/_2PI+0.5,  //逆时针增加，所以z取负 //TODO 这里好像不对。参考uepbr.glsl中的 
+                    asin(dir.y)/PI+0.5);
     #ifdef USEPRETEX
-    v = 1.-v;
-    rgba = textureLod(tex, vec2(u,v),lod);
+    uv.y = 1.-uv.y;
+    //rgba = textureLod(tex, uv,lod);
+    //return;
+    uv+=mod(gl_FragCoord.xy-vec2(0.5),2.0)*128.0;//-8
+    rgba = texture(tex, uv,lod-18.);
     //rgba = texelFetch(tex,ivec2(int(2048.*u), int(1024.*v)),int(lod));
     #else
-    rgba = textureLod(tex, vec2(u,v), lod);
+    rgba = textureLod(tex, uv, lod);
     #endif
     //rgba = texture(tex, vec2(u,v));
     /*
@@ -262,7 +265,8 @@ vec3 ApproximateSpecularIBL( vec3 SpecularColor , float Roughness , vec3 N, vec3
   #ifdef USEPRETEX
     vec4 PrefilteredColor;
     texPanoramaLod(texPreFilterdEnv, R, PrefilteredColor, floor(Roughness*10.0));
-    PrefilteredColor.rgb = _RGBEToRGB(PrefilteredColor);
+    //PrefilteredColor.rgb = _RGBEToRGB(PrefilteredColor);
+    return PrefilteredColor.rgb;
     vec4 EnvBRDF = texture(texBRDFLUT,vec2(Roughness , NoV));//TODO lod
     vec2 rg = _RGBAToU16(EnvBRDF);    
     return PrefilteredColor.rgb * SpecularColor* rg.x + saturate( 50.0 * PrefilteredColor.g ) * rg.y;
